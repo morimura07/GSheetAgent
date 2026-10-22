@@ -30,9 +30,9 @@ Goal: decisions confirmed, accounts ready, code pipeline working, so Phase 1
 | 2 | Policy Status list incl. proposed Declined / Not taken | Phase 1 |
 | 3 | Product types list | Phase 1 (can start with proposed list) |
 | 4 | ~~"15k for 120": is $120 monthly?~~ Yes, monthly (2026-10-22) | — |
-| 5 | Persistency counted from effective date or issue date | Phase 3 |
+| 5 | Persistency counted from effective date or issue date (built: effective, falling back to issue) | Phase 3 (switch in config) |
 | 6 | Mail-in lead cost ($40?) | Phase 3 |
-| 7 | Gas vs IRS mileage rate (cannot deduct both) | Phase 3 |
+| 7 | Gas vs IRS mileage rate (cannot deduct both): Tax & hours shows both methods | Tax preparer |
 | 8 | 2026 IRS rate 76¢ from July 1: verify on IRS.gov (72.5¢ confirmed for Jan 1) | Phase 3 |
 | 9 | Privacy: storage in Google (incl. receipt photos in Drive); screenshots are read with Drive OCR in the same account, no outside AI | Phases 2, 4, 7 |
 | 10 | Assistant's role: entry only, or follow-ups too | Phase 7 |

@@ -15,6 +15,7 @@ import {
   LEAD_TYPES,
   MEDICARE_PLAN_TYPES,
   OK_COUNTIES,
+  PERSISTENCY_START,
   PAYMENT_METHODS,
   PAYMENT_MODES,
   POLICY_STATUSES,
@@ -68,6 +69,21 @@ export interface DataTab {
 }
 
 const createdAt: Column = { key: 'createdAt', header: 'Created', type: 'timestamp', width: 130 };
+
+// ---- Formula helpers -----------------------------------------------------------
+
+const PERSISTENCY_FALLBACK = PERSISTENCY_START === 'effectiveDate' ? 'issueDate' : 'effectiveDate';
+const PERSISTENCY_START_NOTE =
+  PERSISTENCY_START === 'effectiveDate'
+    ? 'Effective date, or the issue date when there is none'
+    : 'Issue date, or the effective date when there is none';
+/** Status groups of issued policies (regex for REGEXMATCH). */
+const ISSUED_GROUPS = '"^(active|at_risk|inactive)$"';
+
+/** Whole months from `from` to `to`; works on whole columns inside ARRAYFORMULA. */
+export function months(from: string, to: string): string {
+  return `((YEAR(${to})-YEAR(${from}))*12+MONTH(${to})-MONTH(${from})-(DAY(${to})<DAY(${from})))`;
+}
 
 export const DATA_TABS: DataTab[] = [
   {
@@ -183,6 +199,32 @@ export const DATA_TABS: DataTab[] = [
         type: 'formula',
         formula:
           'ARRAYFORMULA(IF([[status]]="",,IFERROR(VLOOKUP([[status]],{set_PolicyStatuses_status,set_PolicyStatuses_group},2,FALSE),"?")))',
+      },
+      // Persistency helpers (Phase 3). "Issued" means status group active, at_risk or
+      // inactive; pending, declined and death claims are left out.
+      {
+        key: 'persistencyStart',
+        header: 'Persistency start',
+        type: 'formula',
+        format: 'mm/dd/yyyy',
+        note: PERSISTENCY_START_NOTE,
+        formula: `ARRAYFORMULA(IF([[policyId]]="",,IF([[${PERSISTENCY_START}]]<>"",[[${PERSISTENCY_START}]],IF([[${PERSISTENCY_FALLBACK}]]<>"",[[${PERSISTENCY_FALLBACK}]],))))`,
+      },
+      {
+        key: 'monthsSinceStart',
+        header: 'Months since start',
+        type: 'formula',
+        format: '0',
+        note: 'Whole months from persistency start to the report date (Dashboard > As of)',
+        formula: `ARRAYFORMULA(IF(([[persistencyStart]]="")+NOT(REGEXMATCH([[statusGroup]]&"",${ISSUED_GROUPS})),,${months('[[persistencyStart]]', 'rep_asOf')}))`,
+      },
+      {
+        key: 'monthsInForce',
+        header: 'Months in force',
+        type: 'formula',
+        format: '0',
+        note: 'Whole months from persistency start until it lapsed or was cancelled (Status date), or to the report date',
+        formula: `ARRAYFORMULA(IF([[monthsSinceStart]]="",,${months('[[persistencyStart]]', `IF(([[statusGroup]]="inactive")*([[statusDate]]<>"")*([[statusDate]]<rep_asOf),[[statusDate]],rep_asOf)`)}))`,
       },
       { key: 'notes', header: 'Notes', type: 'text', width: 240 },
       createdAt,

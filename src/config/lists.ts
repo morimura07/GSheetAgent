@@ -28,7 +28,7 @@ export const CARRIERS: Carrier[] = [
  * One Policy Status field replaces "first draft status" + "active/inactive".
  * `group` drives persistency and premium-in-force calculations.
  */
-export type StatusGroup = 'pending' | 'active' | 'at_risk' | 'inactive' | 'not_issued';
+export type StatusGroup = 'pending' | 'active' | 'at_risk' | 'inactive' | 'claim' | 'not_issued';
 
 export const POLICY_STATUSES: { name: string; group: StatusGroup }[] = [
   { name: 'Pending', group: 'pending' },
@@ -36,7 +36,8 @@ export const POLICY_STATUSES: { name: string; group: StatusGroup }[] = [
   { name: 'Insufficient funds', group: 'at_risk' },
   { name: 'Lapsed', group: 'inactive' },
   { name: 'Cancelled', group: 'inactive' },
-  { name: 'Deceased', group: 'inactive' },
+  // A death claim ends the policy but is not a lapse: left out of persistency.
+  { name: 'Deceased', group: 'claim' },
   // PROPOSED: applications that never issue.
   { name: 'Declined', group: 'not_issued' },
   { name: 'Not taken', group: 'not_issued' },

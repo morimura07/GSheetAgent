@@ -17,6 +17,7 @@ import {
   type DataTab,
 } from '../config/schema';
 import { headerFormula } from '../lib/columns';
+import { DASHBOARD, REPORT_TABS, setupReportInputs, setupReports } from './reports';
 import { isoToDate } from '../lib/rows';
 import { ensureSheet, ensureSize } from './util';
 
@@ -25,7 +26,12 @@ type Sheet = GoogleAppsScript.Spreadsheet.Sheet;
 type Range = GoogleAppsScript.Spreadsheet.Range;
 
 const PROTECTION_TAG = 'gsa:auto';
-export const TAB_ORDER: string[] = [...DATA_TABS.map((t) => t.name), LISTS_TAB, SETTINGS_TAB];
+export const TAB_ORDER: string[] = [
+  ...REPORT_TABS,
+  ...DATA_TABS.map((t) => t.name),
+  LISTS_TAB,
+  SETTINGS_TAB,
+];
 
 const FORMATS: Partial<Record<ColumnType, string>> = {
   id: '@',
@@ -52,6 +58,7 @@ export function setupWorkbook(ss: Spreadsheet, lap: (step: string) => void = () 
   setupLists(ensureSheet(ss, LISTS_TAB), nameRange);
   lap('lists');
   setupSettings(ss, ensureSheet(ss, SETTINGS_TAB), nameRange);
+  setupReportInputs(ss, nameRange); // rep_asOf: used by Policies formulas
   lap('settings');
 
   // Every data tab needs its headers before any cross-tab formula is written.
@@ -63,13 +70,14 @@ export function setupWorkbook(ss: Spreadsheet, lap: (step: string) => void = () 
   });
   lap('headers');
   DATA_TABS.forEach((tab, i) => setupDataTab(ss, sheets[i], tab, lap));
+  setupReports(ss, lap);
 
   TAB_ORDER.forEach((name, i) => {
     ss.setActiveSheet(ensureSheet(ss, name));
     ss.moveActiveSheet(i + 1);
   });
   removeEmptyDefaultSheet(ss);
-  ss.setActiveSheet(sheets[0]);
+  ss.setActiveSheet(ss.getSheetByName(DASHBOARD)!);
   lap('order');
 }
 

@@ -4,6 +4,7 @@
 import { runCases, type TestResult } from './harness';
 import { PHASE1_CASES } from './phase1';
 import { PHASE2_CASES } from './phase2';
+import { PHASE3_CASES } from './phase3';
 import { PHASE4_CASES } from './phase4';
 
 declare const __BUILD_VERSION__: string;
@@ -12,7 +13,12 @@ type Spreadsheet = GoogleAppsScript.Spreadsheet.Spreadsheet;
 
 const SPREADSHEET_KEY = 'SELFTEST_SPREADSHEET_ID';
 
-const SUITES = { phase1: PHASE1_CASES, phase2: PHASE2_CASES, phase4: PHASE4_CASES };
+const SUITES = {
+  phase1: PHASE1_CASES,
+  phase2: PHASE2_CASES,
+  phase3: PHASE3_CASES,
+  phase4: PHASE4_CASES,
+};
 export type Suite = keyof typeof SUITES;
 
 export interface SelfTestReport {
