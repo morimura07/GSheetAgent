@@ -32,6 +32,16 @@ export interface Reminder {
   ref: string;
 }
 
+/** Short labels shown next to each reminder. */
+export const REMINDER_LABELS: Record<ReminderKind, string> = {
+  atRisk: 'Payment',
+  draft: 'To check',
+  lead: 'Lead',
+  pending: 'Pending',
+  birthday: 'Birthday',
+  anniversary: 'Anniversary',
+};
+
 /** How far ahead birthdays, anniversaries and first drafts are shown. */
 export const LOOK_AHEAD_DAYS = 7;
 export const FIRST_DRAFT_AHEAD_DAYS = 3;

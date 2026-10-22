@@ -7,10 +7,10 @@ Dashboard.
 
 ## Inputs (Dashboard)
 
-| Cell | Blank means | Used for |
-|---|---|---|
-| **Year** | this year | the year figures, the month table, Lead results, Tax & hours |
-| **As of** | today | persistency, premium in force, the weekly hours table |
+| Cell      | Blank means | Used for                                                     |
+| --------- | ----------- | ------------------------------------------------------------ |
+| **Year**  | this year   | the year figures, the month table, Lead results, Tax & hours |
+| **As of** | today       | persistency, premium in force, the weekly hours table        |
 
 Setting **As of** to a past date shows the picture on that day (for example the end of
 last month).
@@ -18,6 +18,7 @@ last month).
 ## The tabs
 
 **Dashboard**
+
 - **Year figures:**
   - applications written;
   - annual premium written (monthly × 12);
@@ -37,6 +38,7 @@ last month).
 - **Chart:** premium written vs. in force.
 
 **Carriers** (as of the report date)
+
 - **One row per carrier, plus All carriers:**
   - policies written, issued, pending, in force, and lapsed/cancelled;
   - persistency at 3/6/9/12 months;
@@ -45,6 +47,7 @@ last month).
 - New carriers and products added in Settings/Lists appear automatically.
 
 **Lead results** (leads received in the year)
+
 - **Per lead type:**
   - leads and cost;
   - contacted, appointment and close rates (a lead succeeds when an application is
@@ -54,12 +57,11 @@ last month).
   - annual premium per $1 spent on leads.
 
 **Tax & hours**
-- **Car and expenses:** miles, mileage deduction, all expenses, and gas. Both car methods
-  are side by side:
-  - **standard mileage:** the deduction plus expenses other than gas;
-  - **actual expenses:** all expenses including gas, with no mileage deduction.
 
-  A note explains that only one can be used for the same car (open item 7).
+- **Car and expenses:** miles, the mileage deduction, expenses other than gas, and the
+  **total to deduct** (the two together). The client enters mileage on their 1040
+  (standard mileage method, 2026-10-22), so gas is shown for their records only: the IRS
+  rate already covers fuel.
 - **Expenses by category.**
 - **Lead cost:** the Leads tab total for comparison. The tax figures use what was
   recorded as expenses.
@@ -71,8 +73,8 @@ last month).
 - **Persistency N months:** take the issued policies that started at least N months
   before the report date. Persistency is the share of those that stayed in force for N
   months.
-  - "Started" is the effective date, or the issue date if there is none (open item 5;
-    switch it with `PERSISTENCY_START` in `src/config/lists.ts`).
+  - "Started" is the first draft date (client's choice, 2026-10-22), else the effective
+    date, else the issue date (`PERSISTENCY_START` in `src/config/lists.ts`).
   - A policy stops at its Status date when it lapses or is cancelled.
   - Pending, declined/not taken, and death claims are left out.
 - **Deceased** is its own status group (`claim`). It ends the policy (premium in force
@@ -89,6 +91,7 @@ last month).
   - **Months in force**.
 
   The reports count with them, and they show each policy's numbers.
+
 - **Settings > Policy statuses:** Deceased → group `claim`. Workbooks set up before this
   keep their own Settings value; change it there.
 - **Tab order:** Dashboard, Carriers, Lead results, Tax & hours, then the data tabs,
@@ -100,19 +103,19 @@ last month).
 worked out by hand: six policies, including a lapse, a death claim, a pending
 application, an annual-pay policy and an insufficient-funds policy, plus leads, hours,
 trips and expenses. The report runs as of 9/30/2026 for 2026, and the suite checks:
+
 - every Dashboard figure;
 - six months of the month table, and its totals;
 - each carrier and product row;
 - each lead type;
-- both tax methods, the categories and the weekly hours;
+- the mileage-method totals, the categories and the weekly hours;
 - that there are no formula errors, with or without data;
 - that changing Year / As of moves the numbers, and a second setup keeps the inputs.
 
 ## Waiting on the client
 
-- **Item 5:** persistency from the effective date (built) or the issue date.
-- **Item 6:** mail-in lead cost $40. The reports use whatever is in Settings > Lead costs.
-- **Item 7:** gas vs. mileage. Both methods are shown; their tax preparer decides.
+- **Mail-in lead cost:** $48 for now (client: "I believe the cost is 48"), to confirm.
+  The reports use whatever is in Settings > Lead costs.
 - **Item 8:** the 76¢ IRS rate from 7/1/2026 is still marked unverified in Settings.
 
 ## Status

@@ -55,6 +55,10 @@ export function setupWorkbook(ss: Spreadsheet, lap: (step: string) => void = () 
     else ss.setNamedRange(name, range);
   };
 
+  // A first setup (e.g. in the client's copy of the template) takes the script's
+  // time zone (Oklahoma). Later setups leave it: changing it moves typed times.
+  if (!ss.getSheetByName(DATA_TABS[0].name)) ss.setSpreadsheetTimeZone(Session.getScriptTimeZone());
+
   setupLists(ensureSheet(ss, LISTS_TAB), nameRange);
   lap('lists');
   setupSettings(ss, ensureSheet(ss, SETTINGS_TAB), nameRange);

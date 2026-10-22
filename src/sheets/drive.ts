@@ -1,4 +1,5 @@
-// Folders the script keeps in the owner's Drive (receipts, Excel copies). The
+// Files and folders the script keeps in the owner's Drive (receipts, Excel
+// copies, the assistant workbook). The
 // advanced Drive service with the `drive.file` scope only sees files the
 // script created itself.
 
@@ -51,6 +52,15 @@ export function createFile(
   return Drive.Files.create({ name, mimeType, parents: [folderId] }, blob, {
     fields: 'id,name,webViewLink',
   });
+}
+
+/** A new, empty Google Sheets file (made through Drive so `drive.file` covers it). */
+export function createSpreadsheetFile(name: string): DriveFile {
+  return Drive.Files.create(
+    { name, mimeType: 'application/vnd.google-apps.spreadsheet' },
+    undefined,
+    { fields: 'id,name,webViewLink' },
+  );
 }
 
 export function getFile(id: string): DriveFile {

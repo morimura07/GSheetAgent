@@ -523,10 +523,9 @@ function buildLeads(sheet: Sheet): void {
 export const TAX_ROWS = {
   miles: 'Miles driven',
   deduction: 'Mileage deduction (IRS rate)',
-  expenses: 'All expenses',
-  gas: 'Gas',
-  mileageMethod: 'Standard mileage method: mileage deduction + expenses except gas',
-  gasMethod: 'Actual expense method: all expenses including gas, no mileage deduction',
+  otherExpenses: 'Expenses except gas',
+  total: 'Total to deduct (mileage + expenses except gas)',
+  gas: 'Gas (for your records: not deducted with the mileage rate)',
   leadTab: 'Lead cost on the Leads tab',
 };
 
@@ -549,20 +548,19 @@ function buildTax(sheet: Sheet): void {
     [
       [TAX_ROWS.miles, `=SUMIFS(${r('[[Mileage.miles]]')},${year('Mileage')})`],
       [TAX_ROWS.deduction, `=${deduction}`],
-      [TAX_ROWS.expenses, `=${expenses}`],
+      [TAX_ROWS.otherExpenses, `=${expenses}-${gas}`],
+      [TAX_ROWS.total, `=${deduction}+${expenses}-${gas}`],
       [TAX_ROWS.gas, `=${gas}`],
-      [TAX_ROWS.mileageMethod, `=${deduction}+${expenses}-${gas}`],
-      [TAX_ROWS.gasMethod, `=${expenses}`],
       [TAX_ROWS.leadTab, `=SUMIFS(${L('cost')},${inYear(L('dateReceived'))})`],
     ],
     [null, MONEY],
   );
   sheet.getRange('B5').setNumberFormat('#,##0.0');
-  sheet.getRange('A9:B10').setFontWeight('bold');
+  sheet.getRange('A8:B8').setFontWeight('bold');
   note(
     sheet,
     'A12',
-    'The IRS mileage rate already covers fuel: for the same car, use one of the two methods above, not both. Ask your tax preparer which one you use.',
+    'Standard mileage method (miles on the 1040): the IRS rate already covers fuel, so gas is not deducted on top of it.',
   );
   note(
     sheet,

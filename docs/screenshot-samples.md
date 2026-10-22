@@ -12,47 +12,47 @@ bar shows the music playing; both must be ignored.
 
 ## Fields in the contact card
 
-| On screen | Example | Goes to |
-|---|---|---|
-| Name (top) | Test Client 1 | First / last name |
-| Mobile | (405) 123-4567 | Phone |
-| Home (email) | testemail1@email.com | Email |
-| Home (address) | 123 Test Street / Test City, Oklahoma 73111 | Street, City, State (full name → OK), ZIP |
-| Birthday | Fri, Dec 21, 1951 · **Nov 21** (no year) · Wed, Oct 21, 2026 (placeholder?) | Birthday; ask when the year is missing or not in the past |
-| Parent / Child | Test Client 1 | Linked contact; meaning to confirm (see questions) |
+| On screen      | Example                                                                     | Goes to                                                   |
+| -------------- | --------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Name (top)     | Test Client 1                                                               | First / last name                                         |
+| Mobile         | (405) 123-4567                                                              | Phone                                                     |
+| Home (email)   | testemail1@email.com                                                        | Email                                                     |
+| Home (address) | 123 Test Street / Test City, Oklahoma 73111                                 | Street, City, State (full name → OK), ZIP                 |
+| Birthday       | Fri, Dec 21, 1951 · **Nov 21** (no year) · Wed, Oct 21, 2026 (placeholder?) | Birthday; ask when the year is missing or not in the past |
+| Parent / Child | Test Client 1                                                               | Linked contact; meaning to confirm (see questions)        |
 
 ## The notes, as the client writes them
 
 The client does not use the suggested note template. Each note is a free list of short lines:
 
-| Line | Meaning | Goes to |
-|---|---|---|
-| `Met 10.10.26` | first meeting (m.d.yy) | Client created / lead date |
-| `5'6 150`, `6'5 280` | height, weight | Height, Weight |
-| `Non smoker`, `Smoker w COPD` | tobacco | Smoker (+ health) |
-| `Diabetic no neuropathy`, `2 stents 04`, `Right leg amputated 2010` | health history | Health conditions |
-| `Born in Gainesville Tx` | birthplace | Notes |
-| `Has 5k policy w AmAm from 02`, `Had 10k with MoO lapsed`, `Had 7k GI RN`, `Had 5k term NYLife` | existing / past coverage, carrier shorthand | Existing coverage |
-| `Referred by Test Client 1` | referral | Referred by |
-| `Ben:` then `S. Test son 1 34%`, `H. Test Husband 3` + phone | beneficiaries: relationship initial, name, share %, phone | Beneficiaries |
-| `Con.` then `S Test son 3` + phone | contingent beneficiary | Beneficiaries (contingent) |
-| `Combined graded`, `GTL Graded` | carrier + product | Policy carrier, product type |
-| `10k for 110`, `15k for 220` | face amount for premium | Face, Premium |
-| `Issued 11.25.26` | issue date | Issue date |
-| `4th wed` | draft day (Social Security payment schedule) | Policy notes / draft |
-| `G77788888`, `GTL7343456` | policy number | Policy # |
-| `MID: 2345678987`, `Devoted advantage` | Medicare ID, plan | Medicare ID, Medicare plan |
+| Line                                                                                            | Meaning                                                   | Goes to                      |
+| ----------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------- |
+| `Met 10.10.26`                                                                                  | first meeting (m.d.yy)                                    | Client created / lead date   |
+| `5'6 150`, `6'5 280`                                                                            | height, weight                                            | Height, Weight               |
+| `Non smoker`, `Smoker w COPD`                                                                   | tobacco                                                   | Smoker (+ health)            |
+| `Diabetic no neuropathy`, `2 stents 04`, `Right leg amputated 2010`                             | health history                                            | Health conditions            |
+| `Born in Gainesville Tx`                                                                        | birthplace                                                | Notes                        |
+| `Has 5k policy w AmAm from 02`, `Had 10k with MoO lapsed`, `Had 7k GI RN`, `Had 5k term NYLife` | existing / past coverage, carrier shorthand               | Existing coverage            |
+| `Referred by Test Client 1`                                                                     | referral                                                  | Referred by                  |
+| `Ben:` then `S. Test son 1 34%`, `H. Test Husband 3` + phone                                    | beneficiaries: relationship initial, name, share %, phone | Beneficiaries                |
+| `Con.` then `S Test son 3` + phone                                                              | contingent beneficiary                                    | Beneficiaries (contingent)   |
+| `Combined graded`, `GTL Graded`                                                                 | carrier + product                                         | Policy carrier, product type |
+| `10k for 110`, `15k for 220`                                                                    | face amount for premium                                   | Face, Premium                |
+| `Issued 11.25.26`                                                                               | issue date                                                | Issue date                   |
+| `4th wed`                                                                                       | draft day (Social Security payment schedule)              | Policy notes / draft         |
+| `G77788888`, `GTL7343456`                                                                       | policy number                                             | Policy #                     |
+| `MID: 2345678987`, `Devoted advantage`                                                          | Medicare ID, plan                                         | Medicare ID, Medicare plan   |
 
 Relationship initials seen: S. son, D. daughter, H. husband, Ne. nephew.
 
 ## Never stored: present in every long note
 
-| Line | What it is |
-|---|---|
-| `Ss:123456789`, `Ss: 345678913` | SSN |
-| `DL:R0123456789`, `EXP:10.10.31` | driver's license + expiry |
+| Line                                                                      | What it is                            |
+| ------------------------------------------------------------------------- | ------------------------------------- |
+| `Ss:123456789`, `Ss: 345678913`                                           | SSN                                   |
+| `DL:R0123456789`, `EXP:10.10.31`                                          | driver's license + expiry             |
 | `Tfcu Debit` / `1234.5678.9876.5432` / `10.10.31` / `567` / `Test client` | debit card, expiry, CVV, name on card |
-| `Midfirst Bank` / `R: 34534534567` / `A: 34554334565` | bank routing + account |
+| `Midfirst Bank` / `R: 34534534567` / `A: 34554334565`                     | bank routing + account                |
 
 The reader drops these lines, plus the lines that belong to the same block (the
 expiry, CVV and cardholder lines after a card number, and the bank name before R:/A:).

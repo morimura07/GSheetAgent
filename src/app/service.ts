@@ -99,7 +99,7 @@ function settingsColumn(tableKey: string, columnKey: string): number {
 }
 
 /** The app's dropdown lists, from one read of Lists and one of Settings. */
-function readLists(ss: Spreadsheet): Record<string, string[]> {
+export function readLists(ss: Spreadsheet): Record<string, string[]> {
   const read = (name: string) => readTab(ss, name);
   const listRows = read(LISTS_TAB);
   const settingsRows = read(SETTINGS_TAB);
@@ -186,9 +186,13 @@ function clean(specs: FieldSpec[], input: unknown, ctx: FormContext, prefix = ''
 // ---- Clients and leads -----------------------------------------------------
 
 export function saveLead(ss: Spreadsheet, input: unknown): string {
-  const values = clean(LEAD_FORM, input, context(ss));
-  const [lead] = appendRecords(ss, 'Leads', [toCells(LEAD_FORM, values)]);
+  const [lead] = appendRecords(ss, 'Leads', [leadCells(ss, input)]);
   return `Lead ${lead.leadId} saved`;
+}
+
+/** A lead form checked and turned into Leads cells; throws FormError when it is not valid. */
+export function leadCells(ss: Spreadsheet, input: unknown): Input {
+  return toCells(LEAD_FORM, clean(LEAD_FORM, input, context(ss)));
 }
 
 export function saveClient(

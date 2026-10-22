@@ -7,14 +7,14 @@ screen opens), and in the sheet under **Agent Tracker > Reminders**. They are wo
 fresh each time from the rows, so nothing has to be ticked off: fix the row and the
 reminder goes away.
 
-| Reminder | When | Gone when |
-|---|---|---|
-| **Payment**: Insufficient funds | every policy with that status (with its draft day) | the status changes |
-| **To check**: first draft | Pending policy whose first draft date is within 3 days, or has passed | status updated (e.g. Paid as issued) |
-| **Lead** not contacted | 2-30 days after it came in | Contacted ticked |
-| **Pending** application | pending 21+ days with no first draft date | first draft date or status entered |
-| **Birthday** | within 7 days, with the age they turn | the day passes |
-| **Anniversary** | policy 1+ years old (persistency start), within 7 days | the day passes |
+| Reminder                        | When                                                                  | Gone when                            |
+| ------------------------------- | --------------------------------------------------------------------- | ------------------------------------ |
+| **Payment**: Insufficient funds | every policy with that status (with its draft day)                    | the status changes                   |
+| **To check**: first draft       | Pending policy whose first draft date is within 3 days, or has passed | status updated (e.g. Paid as issued) |
+| **Lead** not contacted          | 2-30 days after it came in                                            | Contacted ticked                     |
+| **Pending** application         | pending 21+ days with no first draft date                             | first draft date or status entered   |
+| **Birthday**                    | within 7 days, with the age they turn                                 | the day passes                       |
+| **Anniversary**                 | policy 1+ years old (persistency start), within 7 days                | the day passes                       |
 
 Most urgent first. The rules and day counts are in `src/lib/reminders.ts`.
 
@@ -50,6 +50,7 @@ screen shows a link to it. **Agent Tracker > Save an Excel copy now** makes one 
 
   The writer's output was also opened with openpyxl (a Python Excel library): dates,
   times, bold frozen header and sheet names come through correctly.
+
 - **`npm run test:remote` Phase 6:**
   - reminders from real rows, most urgent first;
   - the .xlsx is built, then unzipped in Apps Script, with every XML part parsed, one

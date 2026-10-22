@@ -5,13 +5,13 @@ screen (the client uses a Samsung Android phone: Chrome > ⋮ > Add to Home scre
 
 ## What is built
 
-| Screen | Writes to | Notes |
-|---|---|---|
-| **New client** | Clients (+ Policies) | Optional policy section (carrier, product, face, premium, mode, application date, status). "From lead" links the lead: sets its Client ID, ticks Contacted and, with a policy, Application written; pre-fills name and phone. |
-| **New lead** | Leads | Cost filled from Settings as in Phase 1. |
-| **Hours** (home screen) | Hours | Clock in (optional activity), start/end break, clock out. Clocking out during a break ends the break. Hours worked = clock out − clock in − breaks. |
-| **Mileage** (home screen) | Mileage | Start trip (odometer + purpose), end trip (odometer). "Add a past trip" enters both readings at once. Miles, IRS rate on the trip date and deduction are formulas. |
-| **Add expense** | Expenses | Category, amount, vendor, paid with, notes, optional receipt photo or PDF. Photos are shrunk to ~1600 px JPEG on the phone, then saved to a Drive folder **Receipts - <workbook name>**; the Receipt column holds the link. |
+| Screen                    | Writes to            | Notes                                                                                                                                                                                                                         |
+| ------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **New client**            | Clients (+ Policies) | Optional policy section (carrier, product, face, premium, mode, application date, status). "From lead" links the lead: sets its Client ID, ticks Contacted and, with a policy, Application written; pre-fills name and phone. |
+| **New lead**              | Leads                | Cost filled from Settings as in Phase 1.                                                                                                                                                                                      |
+| **Hours** (home screen)   | Hours                | Clock in (optional activity), start/end break, clock out. Clocking out during a break ends the break. Hours worked = clock out − clock in − breaks.                                                                           |
+| **Mileage** (home screen) | Mileage              | Start trip (odometer + purpose), end trip (odometer). "Add a past trip" enters both readings at once. Miles, IRS rate on the trip date and deduction are formulas.                                                            |
+| **Add expense**           | Expenses             | Category, amount, vendor, paid with, notes, optional receipt photo or PDF. Photos are shrunk to ~1600 px JPEG on the phone, then saved to a Drive folder **Receipts - <workbook name>**; the Receipt column holds the link.   |
 
 New tabs: **Hours**, **Mileage**, **Expenses** (IDs HR-, MI-, EX-), built by
 **Set up workbook** like the others and also usable by typing straight into the sheet.

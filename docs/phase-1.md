@@ -2,14 +2,14 @@
 
 ## What is built
 
-| Tab | Purpose | Automatic |
-|---|---|---|
-| **Clients** | One row per person | Client ID, Created, Age (flags "Check year"), Birthday this month, Lead source (from Leads) |
-| **Policies** | One row per policy, linked by Client ID | Policy ID, Client name, Monthly premium (from payment mode), Status date (stamped when Status changes), Status group |
-| **Beneficiaries** | One row per beneficiary, linked by Policy ID | Beneficiary ID, Client name, Policy total % (red unless 100%) |
-| **Leads** | One row per lead; Client ID once an application is written | Lead ID, Cost (from Settings > Lead costs on the date received) |
-| **Lists** | Plain dropdown lists (product types, counties, …) | — |
-| **Settings** | Carriers, policy statuses + group, payment modes, lead costs by date, IRS mileage rates by date | — |
+| Tab               | Purpose                                                                                         | Automatic                                                                                                            |
+| ----------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Clients**       | One row per person                                                                              | Client ID, Created, Age (flags "Check year"), Birthday this month, Lead source (from Leads)                          |
+| **Policies**      | One row per policy, linked by Client ID                                                         | Policy ID, Client name, Monthly premium (from payment mode), Status date (stamped when Status changes), Status group |
+| **Beneficiaries** | One row per beneficiary, linked by Policy ID                                                    | Beneficiary ID, Client name, Policy total % (red unless 100%)                                                        |
+| **Leads**         | One row per lead; Client ID once an application is written                                      | Lead ID, Cost (from Settings > Lead costs on the date received)                                                      |
+| **Lists**         | Plain dropdown lists (product types, counties, …)                                               | —                                                                                                                    |
+| **Settings**      | Carriers, policy statuses + group, payment modes, lead costs by date, IRS mileage rates by date | —                                                                                                                    |
 
 - All layout lives in `src/config/schema.ts`; **Agent Tracker > Set up workbook** builds or repairs the sheet from it and is safe to re-run (data is never deleted; Lists/Settings are seeded only when empty).
 - Dropdowns read from Lists/Settings, so adding a carrier or lead type there updates every dropdown.

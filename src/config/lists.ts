@@ -81,8 +81,8 @@ export interface LeadType {
 export const LEAD_TYPES: LeadType[] = [
   { name: 'Yes lead', costPerLead: 10, from: '2026-01-01', confirmed: true },
   { name: 'Survey lead', costPerLead: 23, from: '2026-01-01', confirmed: true },
-  // Client: "unsure, I believe 40 right now".
-  { name: 'Mail-in lead', costPerLead: 40, from: '2026-01-01', confirmed: false },
+  // Client (2026-10-22): "I believe the cost is 48", to confirm.
+  { name: 'Mail-in lead', costPerLead: 48, from: '2026-01-01', confirmed: false },
   // PROPOSED: referrals appear in contact notes ("wants policy for sister").
   { name: 'Referral', costPerLead: 0, from: '2026-01-01', confirmed: false },
 ];
@@ -92,8 +92,8 @@ export const EXPENSE_CATEGORIES = ['Gas', 'Leads', 'Food', 'Misc'];
 // PROPOSED: not asked yet.
 export const PAYMENT_METHODS = ['Debit card', 'Credit card', 'Cash', 'Bank transfer'];
 
-// PROPOSED optional activity tag on hours; client did not comment.
-export const HOURS_ACTIVITIES = ['Dialing', 'Appointments', 'Travel', 'Admin', 'Training'];
+// Optional activity tag on hours (client, 2026-10-22).
+export const HOURS_ACTIVITIES = ['Dialing', 'Field', 'Admin', 'Other'];
 
 export const STATES = ['OK'];
 
@@ -114,8 +114,11 @@ export const OK_COUNTIES = [
 /** Months after the persistency start date at which persistency is reported. */
 export const PERSISTENCY_MONTHS = [3, 6, 9, 12];
 
-/** OPEN QUESTION: effective date (recommended) or issue date. */
-export const PERSISTENCY_START: 'effectiveDate' | 'issueDate' = 'effectiveDate';
+/**
+ * Policy dates persistency counts from, first one filled in wins. Client
+ * (2026-10-22): "First draft would start persistency".
+ */
+export const PERSISTENCY_START = ['firstDraftDate', 'effectiveDate', 'issueDate'] as const;
 
 export interface MileageRate {
   /** ISO date the rate applies from. */

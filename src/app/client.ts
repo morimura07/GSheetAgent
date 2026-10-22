@@ -2,7 +2,7 @@
 // Talks to the server only through google.script.run (functions in src/index.ts).
 
 import { initialValues, type FieldSpec } from '../lib/forms';
-import type { Reminder } from '../lib/reminders';
+import { REMINDER_LABELS, type Reminder } from '../lib/reminders';
 import {
   BENEFICIARY_FORM,
   CLIENT_FORM,
@@ -232,14 +232,6 @@ function home(): void {
 // redrawn after every save).
 let lastHousekeeping: HousekeepingResult | undefined;
 
-const REMINDER_LABELS: Record<Reminder['kind'], string> = {
-  atRisk: 'Payment',
-  draft: 'To check',
-  lead: 'Lead',
-  pending: 'Pending',
-  birthday: 'Birthday',
-  anniversary: 'Anniversary',
-};
 const SHOWN_REMINDERS = 6;
 
 /** Reminders (and the monthly Excel copy) load after the home screen is shown. */
@@ -270,6 +262,7 @@ function remindersCard(): HTMLElement {
         ),
       );
     }
+    if (result.assistant) card.append(h('p', { class: 'status' }, result.assistant));
     if (result.exported) {
       card.append(
         h(
@@ -284,8 +277,8 @@ function remindersCard(): HTMLElement {
   fill(lastHousekeeping, true);
   call<HousekeepingResult>('appHousekeeping')
     .then((result) => {
-      // A copy made once is not news on the next redraw.
-      lastHousekeeping = result.ok ? { ...result, exported: null } : result;
+      // A copy made, or a sync done, once is not news on the next redraw.
+      lastHousekeeping = result.ok ? { ...result, exported: null, assistant: null } : result;
       fill(result, false);
     })
     .catch((err: Error) => fill({ ok: false, error: err.message }, false));

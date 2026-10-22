@@ -230,7 +230,7 @@ export const PHASE1_CASES: TestCase[] = [
   {
     name: 'lead costs come from Settings',
     run: (ss) => {
-      eq(pluck(records(ss, 'Leads'), 'cost'), [10, 23, 0, 40], 'lead costs');
+      eq(pluck(records(ss, 'Leads'), 'cost'), [10, 23, 0, 48], 'lead costs');
     },
   },
   {

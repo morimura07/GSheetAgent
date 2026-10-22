@@ -22,6 +22,7 @@ there. Here is how it works:
 
    It doesn't ask for your email, contacts, calendar or anything else, and nothing is
    sent to me or to anyone else.
+
 3. **We set up the phone link together.** This takes about 5 minutes. I can walk you
    through it on a short call or screen share, and I still won't need to sign in to
    anything. After that you add it to your phone's home screen like before.

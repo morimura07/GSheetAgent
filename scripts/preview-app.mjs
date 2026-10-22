@@ -30,7 +30,7 @@ const lists = {
   PolicyStatuses: ['Pending', 'Paid as issued'],
   ExpenseCategories: ['Gas', 'Leads', 'Food', 'Misc'],
   PaymentMethods: ['Debit card', 'Credit card', 'Cash'],
-  HoursActivities: ['Dialing', 'Appointments', 'Travel'],
+  HoursActivities: ['Dialing', 'Field', 'Admin', 'Other'],
   BeneficiaryTypes: ['Primary', 'Contingent'],
 };
 const idle = {
@@ -111,6 +111,7 @@ const house = {
     { kind: 'birthday', date: '2026-10-24', ref: 'CL-0001', text: 'Test Alpha turns 70 on Sat 10/24' },
   ],
   exported: { id: 'x', name: 'Agent Tracker 2026-10-22.xlsx', link: '#' },
+  assistant: 'From your assistant: 2 changes, 1 new lead.',
 }; // prettier-ignore
 
 // Each scenario: the boot data, what the fake server answers, and clicks to make after load.

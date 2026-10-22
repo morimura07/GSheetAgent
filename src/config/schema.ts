@@ -72,11 +72,11 @@ const createdAt: Column = { key: 'createdAt', header: 'Created', type: 'timestam
 
 // ---- Formula helpers -----------------------------------------------------------
 
-const PERSISTENCY_FALLBACK = PERSISTENCY_START === 'effectiveDate' ? 'issueDate' : 'effectiveDate';
-const PERSISTENCY_START_NOTE =
-  PERSISTENCY_START === 'effectiveDate'
-    ? 'Effective date, or the issue date when there is none'
-    : 'Issue date, or the effective date when there is none';
+/** The first filled-in date of PERSISTENCY_START, as nested IFs. */
+const PERSISTENCY_START_FORMULA = PERSISTENCY_START.reduceRight(
+  (rest, key) => `IF([[${key}]]<>"",[[${key}]],${rest})`,
+  '',
+);
 /** Status groups of issued policies (regex for REGEXMATCH). */
 const ISSUED_GROUPS = '"^(active|at_risk|inactive)$"';
 
@@ -207,8 +207,8 @@ export const DATA_TABS: DataTab[] = [
         header: 'Persistency start',
         type: 'formula',
         format: 'mm/dd/yyyy',
-        note: PERSISTENCY_START_NOTE,
-        formula: `ARRAYFORMULA(IF([[policyId]]="",,IF([[${PERSISTENCY_START}]]<>"",[[${PERSISTENCY_START}]],IF([[${PERSISTENCY_FALLBACK}]]<>"",[[${PERSISTENCY_FALLBACK}]],))))`,
+        note: 'First draft date, else the effective date, else the issue date',
+        formula: `ARRAYFORMULA(IF([[policyId]]="",,${PERSISTENCY_START_FORMULA}))`,
       },
       {
         key: 'monthsSinceStart',
@@ -225,6 +225,13 @@ export const DATA_TABS: DataTab[] = [
         format: '0',
         note: 'Whole months from persistency start until it lapsed or was cancelled (Status date), or to the report date',
         formula: `ARRAYFORMULA(IF([[monthsSinceStart]]="",,${months('[[persistencyStart]]', `IF(([[statusGroup]]="inactive")*([[statusDate]]<>"")*([[statusDate]]<rep_asOf),[[statusDate]],rep_asOf)`)}))`,
+      },
+      {
+        key: 'assistantNotes',
+        header: 'Assistant notes',
+        type: 'text',
+        width: 240,
+        note: 'Shared with the assistant workbook; the assistant can change it',
       },
       { key: 'notes', header: 'Notes', type: 'text', width: 240 },
       createdAt,
@@ -298,6 +305,13 @@ export const DATA_TABS: DataTab[] = [
           'ARRAYFORMULA(IF([[clientId]]="",,IFERROR(VLOOKUP([[clientId]],{[[Clients.clientId]],[[Clients.firstName]]&" "&[[Clients.lastName]]},2,FALSE),"Unknown client")))',
       },
       { key: 'referredBy', header: 'Referred by (Client ID)', type: 'ref', refTab: 'Clients' },
+      {
+        key: 'assistantNotes',
+        header: 'Assistant notes',
+        type: 'text',
+        width: 240,
+        note: 'Shared with the assistant workbook; the assistant can change it',
+      },
       { key: 'notes', header: 'Notes', type: 'text', width: 240 },
       createdAt,
     ],
