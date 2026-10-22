@@ -65,22 +65,20 @@ normal lines that must still be accepted.
 
 ## Privacy consequence for the reader
 
-Every long screenshot contains SSN, card and bank numbers. So whatever reads the image
-sees them, even though nothing stores them. That makes open item 9 (may screenshots be
-read by an AI service?) a blocker for Phase 4. Options:
+Every long screenshot contains SSN, card and bank numbers, so whatever reads the image
+sees them, even though nothing stores them. Chosen approach (Phase 4): **Google Drive's
+built-in text recognition** in the agent's own Google account, with the temporary Doc
+deleted permanently at once, plus rule-based reading of the lines above. No outside AI
+service is involved. See [phase-4.md](phase-4.md).
 
-1. **Google Drive's built-in text recognition** (same Google account that holds the
-   workbook; image uploaded, converted to text, deleted at once) plus rule-based parsing
-   of the lines above. Nothing leaves Google.
-2. **An AI vision model** (more accurate on messy notes) only if the client's agency
-   allows it.
+## Client answers (2026-10-22)
 
-## Questions for the client
-
-1. The correct values for each test contact (requested, not yet received), especially:
-   is "10k for 110" $110 **per month**?
-2. Test Client 1's birthday is Oct 21, **2026**. Placeholder, or a typo?
-3. What do the **Parent / Child** links mean: who referred whom, or family?
-4. Is "4th wed" the draft day (Social Security schedule)? Should it be a column?
-5. Health details (strokes, amputations, COPD) would go to the Health conditions column.
-   Is that wanted, given privacy item 9?
+1. "10k for 110": **$110 is the monthly premium.**
+2. The 2026 birthday was used on purpose "to see what the information would flag": a
+   birthday this year or later is flagged and left out.
+3. The linked contacts (Parent / Child) **are the beneficiaries**: who that person is to
+   the policyholder.
+4. "4th wed" is the **premium draft date**; it gets its own column (Policies > Draft day).
+5. Health details are **not wanted in the sheet**: "It's information for me so I know who
+   they are and what they're dealing with." The Health conditions column was removed; the
+   reader lists health lines for review but never saves them.

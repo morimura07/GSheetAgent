@@ -5,7 +5,7 @@ mileage, expenses, hours, carrier persistency, monthly premium and commissions,
 with a phone entry app and a contact-screenshot reader.
 
 - Requirements: [Google Doc](https://docs.google.com/document/d/1QYdmrM9DVSbyW4LJ0lSkIT8WF49XnaJEioh3SjNy4e0/edit)
-- Phase plan and status: [docs/phase-0.md](docs/phase-0.md), [docs/phase-1.md](docs/phase-1.md), [docs/phase-2.md](docs/phase-2.md)
+- Phase plan and status: [docs/phase-0.md](docs/phase-0.md), [docs/phase-1.md](docs/phase-1.md), [docs/phase-2.md](docs/phase-2.md), [docs/phase-4.md](docs/phase-4.md)
 
 ## Layout
 
@@ -21,7 +21,7 @@ with a phone entry app and a contact-screenshot reader.
 | `test/` | Unit tests. |
 | `build.mjs` | Bundles `src/` into `dist/Code.js` with esbuild and adds the top-level stubs. |
 | `appsscript.json` | Apps Script manifest (copied to `dist/`). |
-| `samples/` | Test screenshots. Git-ignored, never committed. |
+| `samples/` | The client's made-up test screenshots. Git-ignored, never committed; when present, `npm run build` copies them into the DEV script (SampleImages.html) for the Phase 4 self-test. `npx clasp run ocrSamplesJson` returns their OCR text. |
 
 ## Commands
 
@@ -35,7 +35,7 @@ npm run preview:app # screenshot the phone screens with fake data into .preview/
 npm run open       # open the Apps Script editor
 ```
 
-`test:remote` runs each suite (`runSelfTestPhase1Json`, `runSelfTestPhase2Json`) as its own
+`test:remote` runs each suite (`runSelfTestPhase1Json`, `runSelfTestPhase2Json`, `runSelfTestPhase4Json`) as its own
 `clasp run` against a separate SELF-TEST spreadsheet that is wiped on every run;
 `node scripts/remote-test.mjs phase2` runs one suite. It needs the script linked to the GCP project and a login made with
 `npx clasp login --creds .secrets/client_secret.json --use-project-scopes --include-clasp-scopes`.

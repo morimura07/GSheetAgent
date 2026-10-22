@@ -6,7 +6,8 @@
 // The phone app (src/app/client.ts) is bundled separately and inlined into
 // dist/App.html, since HtmlService serves a single file.
 import { build } from 'esbuild';
-import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { copyFile, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 
 const ENTRY = 'src/index.ts';
 const CLIENT_ENTRY = 'src/app/client.ts';
@@ -56,5 +57,24 @@ await writeFile(
   html.replace('<!-- CLIENT_SCRIPT -->', () => `<script>${clientJs}</script>`),
 );
 
+// The client's made-up test screenshots, for the Phase 4 self-test. samples/
+// is git-ignored; without it the file is left out and those cases are skipped.
+const sampleFiles = existsSync('samples')
+  ? (await readdir('samples')).filter((f) => /\.(jpe?g|png)$/i.test(f)).sort()
+  : [];
+if (sampleFiles.length) {
+  const samples = await Promise.all(
+    sampleFiles.map(async (name) => ({
+      name,
+      mimeType: /\.png$/i.test(name) ? 'image/png' : 'image/jpeg',
+      base64: (await readFile(`samples/${name}`)).toString('base64'),
+    })),
+  );
+  await writeFile('dist/SampleImages.html', JSON.stringify(samples));
+} else {
+  await rm('dist/SampleImages.html', { force: true });
+}
+
 console.log(`Built dist/Code.js (${version}) exposing: ${exportNames.join(', ')}`);
+if (sampleFiles.length) console.log(`Built dist/SampleImages.html (${sampleFiles.length} images)`);
 console.log(`Built dist/App.html (${(clientJs.length / 1024).toFixed(1)} KB script)`);

@@ -37,7 +37,6 @@ export function loadTestData(ss: Spreadsheet): { ok: boolean; message: string } 
       smoker: 'Non-smoker',
       height: `5'10"`,
       weightLbs: 200,
-      healthConditions: 'Test condition',
       existingCoverage: '10k American Amicable',
       medicarePlan: 'None',
       notes: 'FAKE TEST RECORD',
@@ -122,8 +121,17 @@ export function loadTestData(ss: Spreadsheet): { ok: boolean; message: string } 
       policyId: levelPolicy,
       name: 'Test Daughter',
       relationship: 'Daughter',
+      kind: 'Primary',
       share: 0.5,
       phone: '(555) 010-0102',
+    },
+    {
+      // Contingent shares total 100% on their own.
+      policyId: levelPolicy,
+      name: 'Test Nephew',
+      relationship: 'Nephew',
+      kind: 'Contingent',
+      share: 1,
     },
   ]);
 
@@ -164,6 +172,6 @@ export function loadTestData(ss: Spreadsheet): { ok: boolean; message: string } 
 
   return {
     ok: true,
-    message: 'Test data loaded: 3 clients, 3 policies, 2 beneficiaries, 4 leads.',
+    message: 'Test data loaded: 3 clients, 3 policies, 3 beneficiaries, 4 leads.',
   };
 }

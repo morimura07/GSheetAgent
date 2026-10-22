@@ -219,11 +219,12 @@ export const PHASE1_CASES: TestCase[] = [
     },
   },
   {
-    name: 'beneficiaries link to the client and total 100%',
+    name: 'beneficiaries link to the client; primary and contingent each total 100%',
     run: (ss) => {
       const bens = records(ss, 'Beneficiaries');
-      eq(pluck(bens, 'clientName'), ['Test Alpha', 'Test Alpha'], 'client names');
-      eq(pluck(bens, 'policyShareTotal'), [1, 1], 'policy totals');
+      eq(pluck(bens, 'clientName'), ['Test Alpha', 'Test Alpha', 'Test Alpha'], 'client names');
+      // Son (no type: counts as primary) + daughter = 100%; the contingent nephew alone = 100%.
+      eq(pluck(bens, 'policyShareTotal'), [1, 1, 1], 'policy totals');
     },
   },
   {

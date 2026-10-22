@@ -66,6 +66,9 @@ export const PAYMENT_MODES: { name: string; perYear: number }[] = [
 
 export const SMOKER_OPTIONS = ['Non-smoker', 'Smoker'];
 
+/** Contact notes list primary beneficiaries under "Ben:" and contingent ones under "Con.". */
+export const BENEFICIARY_TYPES = ['Primary', 'Contingent'];
+
 export interface LeadType {
   name: string;
   costPerLead: number;

@@ -7,6 +7,7 @@
 // Settings columns are named ranges: set_<Table>_<key>. Dropdown sources: list_<List>.
 
 import {
+  BENEFICIARY_TYPES,
   CARRIERS,
   EXPENSE_CATEGORIES,
   HOURS_ACTIVITIES,
@@ -106,13 +107,6 @@ export const DATA_TABS: DataTab[] = [
       { key: 'smoker', header: 'Smoker', type: 'list', list: 'Smoker' },
       { key: 'height', header: 'Height', type: 'text', width: 70, note: `e.g. 5'10"` },
       { key: 'weightLbs', header: 'Weight (lbs)', type: 'number', width: 90 },
-      {
-        key: 'healthConditions',
-        header: 'Health conditions',
-        type: 'text',
-        sensitive: true,
-        width: 200,
-      },
       { key: 'existingCoverage', header: 'Existing coverage', type: 'text', width: 160 },
       { key: 'medicarePlan', header: 'Medicare plan', type: 'list', list: 'MedicarePlanTypes' },
       { key: 'medicareId', header: 'Medicare ID', type: 'text', sensitive: true },
@@ -169,6 +163,13 @@ export const DATA_TABS: DataTab[] = [
       { key: 'issueDate', header: 'Issue date', type: 'date' },
       { key: 'effectiveDate', header: 'Effective date', type: 'date' },
       { key: 'firstDraftDate', header: 'First draft date', type: 'date' },
+      {
+        key: 'draftDay',
+        header: 'Draft day',
+        type: 'text',
+        width: 90,
+        note: 'Monthly draft day, e.g. "4th Wed" (Social Security schedule) or "3rd"',
+      },
       { key: 'status', header: 'Status', type: 'list', list: 'PolicyStatuses', width: 140 },
       {
         key: 'statusDate',
@@ -204,16 +205,18 @@ export const DATA_TABS: DataTab[] = [
       },
       { key: 'name', header: 'Beneficiary name', type: 'text', sensitive: true, width: 170 },
       { key: 'relationship', header: 'Relationship', type: 'text', sensitive: true },
+      { key: 'kind', header: 'Type', type: 'list', list: 'BeneficiaryTypes', width: 100 },
       { key: 'share', header: 'Share %', type: 'percent', sensitive: true, width: 80 },
       { key: 'phone', header: 'Phone', type: 'text', sensitive: true },
       {
         key: 'policyShareTotal',
         header: 'Policy total %',
         type: 'formula',
-        note: 'Should be 100% for each policy',
+        note: 'Should be 100% for each policy: primary and contingent beneficiaries separately',
         format: '0%',
         warn: 'notOne',
-        formula: 'ARRAYFORMULA(IF([[policyId]]="",,SUMIF([[policyId]],[[policyId]],[[share]])))',
+        formula:
+          'ARRAYFORMULA(IF([[policyId]]="",,SUMIF([[policyId]]&"|"&IF([[kind]]="","Primary",[[kind]]),[[policyId]]&"|"&IF([[kind]]="","Primary",[[kind]]),[[share]])))',
       },
       createdAt,
     ],
@@ -425,6 +428,7 @@ export const SIMPLE_LISTS = {
   ProductTypes: { header: 'Product types', seed: PRODUCT_TYPES },
   MedicarePlanTypes: { header: 'Medicare plan types', seed: MEDICARE_PLAN_TYPES },
   Smoker: { header: 'Smoker', seed: SMOKER_OPTIONS },
+  BeneficiaryTypes: { header: 'Beneficiary types', seed: BENEFICIARY_TYPES },
   LeadTypes: { header: 'Lead types', seed: LEAD_TYPES.map((l) => l.name) },
   ExpenseCategories: { header: 'Expense categories', seed: EXPENSE_CATEGORIES },
   PaymentMethods: { header: 'Payment methods', seed: PAYMENT_METHODS },
