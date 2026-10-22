@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+
+# clasp credentials and the GCP OAuth client secret (never commit)
+.clasprc.json
+.secrets/
+
+# Client screenshots and any real client data stay local only
+samples/
+*.local.*
+.preview/

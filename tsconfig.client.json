@@ -1,0 +1,10 @@
+{
+  // The phone app runs in the browser: DOM types, no Apps Script types.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "types": []
+  },
+  "include": ["src/app/client.ts"],
+  "exclude": []
+}

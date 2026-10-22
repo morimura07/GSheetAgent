@@ -1,0 +1,27 @@
+{
+  "name": "gsheet-agent-tracker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Insurance agent tracker: Google Sheets workbook + Apps Script (entry app, screenshot reader, reminders).",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.client.json",
+    "test": "vitest run",
+    "format": "prettier --write .",
+    "check": "npm run typecheck && npm test && npm run build",
+    "push": "npm run check && clasp push",
+    "test:remote": "npm run typecheck && npm test && node scripts/remote-test.mjs",
+    "deploy:app": "npm run check && node scripts/deploy-app.mjs",
+    "preview:app": "npm run build && node scripts/preview-app.mjs",
+    "open": "clasp open-script"
+  },
+  "devDependencies": {
+    "@google/clasp": "^3.4.1",
+    "@types/google-apps-script": "^2.0.13",
+    "esbuild": "^0.28.2",
+    "prettier": "^3.9.10",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}

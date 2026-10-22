@@ -1,0 +1,18 @@
+{
+  "scriptId": "1YxZQy8JyxBgZHiHBn83EMZNBDPhqHp5iSQarDCeW3lRsTbOF-b--BlCd",
+  "rootDir": "dist",
+  "parentId": "19IaFLPt9iyLQhH17j9Cc4wJvV0WwjWH_NvChV-FfYkA",
+  "scriptExtensions": [
+    ".js",
+    ".gs"
+  ],
+  "htmlExtensions": [
+    ".html"
+  ],
+  "jsonExtensions": [
+    ".json"
+  ],
+  "filePushOrder": [],
+  "skipSubdirectories": false,
+  "projectId": "agent-tracker-dev"
+}
