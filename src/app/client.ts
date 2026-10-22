@@ -2,6 +2,7 @@
 // Talks to the server only through google.script.run (functions in src/index.ts).
 
 import { initialValues, type FieldSpec } from '../lib/forms';
+import { REMINDER_LABELS, type Reminder } from '../lib/reminders';
 import {
   BENEFICIARY_FORM,
   CLIENT_FORM,
@@ -16,6 +17,7 @@ import {
   type ApiResult,
   type Boot,
   type ContactDraft,
+  type HousekeepingResult,
   type Option,
   type ReadResult,
   type ReceiptUpload,
@@ -205,6 +207,7 @@ function home(): void {
       h('button', { class: 'tile', onclick: newLead }, 'New lead'),
       h('button', { class: 'tile', onclick: newExpense }, 'Add expense'),
     ),
+    remindersCard(),
     hours,
     mileageCard(),
     h(
@@ -223,6 +226,63 @@ function home(): void {
       hours = fresh;
     }, 60_000);
   }
+}
+
+// Last answer, shown straight away while a fresh one loads (the home screen is
+// redrawn after every save).
+let lastHousekeeping: HousekeepingResult | undefined;
+
+const SHOWN_REMINDERS = 6;
+
+/** Reminders (and the monthly Excel copy) load after the home screen is shown. */
+function remindersCard(): HTMLElement {
+  const card = h('section', { class: 'card' }, h('h2', {}, 'Reminders'));
+  const fill = (result: HousekeepingResult | undefined, loading: boolean) => {
+    card.replaceChildren(h('h2', {}, 'Reminders'));
+    if (!result) {
+      card.append(h('p', { class: 'status' }, loading ? 'Checking…' : ''));
+      return;
+    }
+    if (!result.ok) {
+      card.append(h('p', { class: 'status error' }, `Could not load: ${result.error}`));
+      return;
+    }
+    const item = (r: Reminder) =>
+      h('li', { class: r.kind }, h('strong', {}, `${REMINDER_LABELS[r.kind]} `), r.text);
+    const list = result.reminders;
+    if (!list.length) card.append(h('p', { class: 'status' }, 'Nothing needs attention today.'));
+    else card.append(h('ul', { class: 'reminders' }, ...list.slice(0, SHOWN_REMINDERS).map(item)));
+    if (list.length > SHOWN_REMINDERS) {
+      card.append(
+        h(
+          'details',
+          {},
+          h('summary', {}, `${list.length - SHOWN_REMINDERS} more`),
+          h('ul', { class: 'reminders' }, ...list.slice(SHOWN_REMINDERS).map(item)),
+        ),
+      );
+    }
+    if (result.assistant) card.append(h('p', { class: 'status' }, result.assistant));
+    if (result.exported) {
+      card.append(
+        h(
+          'p',
+          { class: 'status' },
+          "This month's Excel copy was saved to Drive: ",
+          h('a', { href: result.exported.link, target: '_blank' }, result.exported.name),
+        ),
+      );
+    }
+  };
+  fill(lastHousekeeping, true);
+  call<HousekeepingResult>('appHousekeeping')
+    .then((result) => {
+      // A copy made, or a sync done, once is not news on the next redraw.
+      lastHousekeeping = result.ok ? { ...result, exported: null, assistant: null } : result;
+      fill(result, false);
+    })
+    .catch((err: Error) => fill({ ok: false, error: err.message }, false));
+  return card;
 }
 
 function hoursCard(): HTMLElement {

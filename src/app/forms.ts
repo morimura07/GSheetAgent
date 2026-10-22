@@ -2,6 +2,7 @@
 // (checked in test/forms.test.ts), so the app and the workbook cannot drift apart.
 
 import type { FieldSpec } from '../lib/forms';
+import type { Reminder } from '../lib/reminders';
 
 export const LEAD_FORM: FieldSpec[] = [
   {
@@ -170,6 +171,17 @@ export interface ContactDraft {
   /** Lines left out because they hold SSN, card, bank or license numbers. */
   removed: number;
 }
+
+/** After the home screen loads: what needs attention, and this month's Excel copy if it was just made. */
+export type HousekeepingResult =
+  | {
+      ok: true;
+      reminders: Reminder[];
+      exported: { id: string; name: string; link: string } | null;
+      /** What the assistant workbook sync brought in, when there is news. */
+      assistant?: string | null;
+    }
+  | { ok: false; error: string };
 
 export type ReadResult = { ok: true; draft: ContactDraft } | { ok: false; error: string };
 

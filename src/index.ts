@@ -2,9 +2,12 @@
 // dist/Code.js (see build.mjs), so menus and triggers can call it by name.
 
 import { loadBoot, rememberWorkbook, respond, workbook } from './app/api';
-import type { ApiResult, Boot, ReadResult, ReceiptUpload } from './app/forms';
+import { createAssistantWorkbook, syncAssistant, type AssistantSync } from './app/assistant';
+import type { ApiResult, Boot, HousekeepingResult, ReadResult, ReceiptUpload } from './app/forms';
 import {
+  housekeeping,
   readContactScreenshots,
+  readReminders,
   saveClient,
   saveExpense,
   saveLead,
@@ -17,22 +20,30 @@ import {
 import { runSelfTest, type Suite } from './selftest/run';
 import { sampleImages } from './selftest/samples';
 import { handleEdit } from './sheets/edits';
+import { exportToExcel } from './sheets/export';
 import { ocrImage } from './sheets/ocr';
 import { setupWorkbook } from './sheets/setup';
 import { loadTestData as loadTestDataImpl } from './sheets/testData';
 
 declare const __BUILD_VERSION__: string;
+/** True in the copy handed to the client (`node build.mjs --release`). */
+declare const __RELEASE__: boolean;
 
 export function onOpen(): void {
-  SpreadsheetApp.getUi()
+  const menu = SpreadsheetApp.getUi()
     .createMenu('Agent Tracker')
     .addItem('Set up workbook', 'runSetup')
     .addItem('Phone app link', 'showPhoneAppLink')
-    .addSeparator()
-    .addItem('Load test data (DEV only)', 'loadTestData')
-    .addItem('Run self-test (DEV only)', 'selfTest')
-    .addItem('About', 'showAbout')
-    .addToUi();
+    .addItem('Reminders', 'showReminders')
+    .addItem('Save an Excel copy now', 'saveExcelCopy')
+    .addItem('Assistant workbook', 'showAssistantWorkbook')
+    .addSeparator();
+  if (!__RELEASE__) {
+    menu
+      .addItem('Load test data (DEV only)', 'loadTestData')
+      .addItem('Run self-test (DEV only)', 'selfTest');
+  }
+  menu.addItem('About', 'showAbout').addToUi();
 }
 
 export function onEdit(e: GoogleAppsScript.Events.SheetsOnEdit): void {
@@ -72,7 +83,72 @@ export function showPhoneAppLink(): void {
   ui.showModalDialog(html, 'Phone app');
 }
 
+export function showReminders(): void {
+  const list = readReminders(SpreadsheetApp.getActiveSpreadsheet());
+  const items = list.map((r) => `<li>${escapeHtml(r.text)} <small>(${r.ref})</small></li>`);
+  const html = HtmlService.createHtmlOutput(
+    `<div style="font-family:sans-serif">${
+      items.length ? `<ul>${items.join('')}</ul>` : '<p>Nothing needs attention today.</p>'
+    }</div>`,
+  )
+    .setWidth(520)
+    .setHeight(Math.min(560, 120 + items.length * 44));
+  SpreadsheetApp.getUi().showModalDialog(html, `Reminders (${list.length})`);
+}
+
+export function saveExcelCopy(): void {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  ss.toast('Saving an Excel copy…', 'Agent Tracker', -1);
+  const file = exportToExcel(ss);
+  const html = HtmlService.createHtmlOutput(
+    `<p style="font-family:sans-serif">Saved <a href="${file.webViewLink}" target="_blank">${escapeHtml(
+      file.name ?? 'the Excel copy',
+    )}</a> in your Drive folder "Excel copies".</p>`,
+  )
+    .setWidth(420)
+    .setHeight(140);
+  ss.toast('Excel copy saved.', 'Agent Tracker', 3);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Excel copy');
+}
+
+/** Makes the assistant workbook if needed, syncs it, and shows how to share it. */
+export function showAssistantWorkbook(): void {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  ss.toast('Updating the assistant workbook…', 'Agent Tracker', -1);
+  const sync = createAssistantWorkbook(ss);
+  ss.toast(assistantNews(sync) ?? 'Assistant workbook is up to date.', 'Agent Tracker', 5);
+  const html = HtmlService.createHtmlOutput(
+    `<div style="font-family:sans-serif;font-size:14px">
+      <p><a href="${sync.url}" target="_blank">Open the assistant workbook</a></p>
+      <p>It holds names, phones, lead follow-ups, carrier, policy number and status only.
+      Notes, health, Medicare IDs, beneficiaries and money stay here.</p>
+      <p><b>To give your assistant access:</b> open it, tap <b>Share</b>, add their email as
+      <b>Editor</b>. To stop it, remove them there.</p>
+      <p>It updates each time you open the phone app, or when you choose this menu item.
+      Their changes are listed on the "Assistant log" tab.</p>
+    </div>`,
+  )
+    .setWidth(460)
+    .setHeight(300);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Assistant workbook');
+}
+
+/** One line about what a sync brought in; null when nothing came in. */
+function assistantNews(sync: AssistantSync): string | null {
+  const parts = [
+    sync.changes && `${sync.changes} change${sync.changes === 1 ? '' : 's'}`,
+    sync.added && `${sync.added} new lead${sync.added === 1 ? '' : 's'}`,
+    sync.problems && `${sync.problems} new lead${sync.problems === 1 ? '' : 's'} to fix there`,
+  ].filter(Boolean);
+  return parts.length ? `From your assistant: ${parts.join(', ')}.` : null;
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 export function loadTestData(): void {
+  if (__RELEASE__) throw new Error('Test data is for the DEV workbook only');
   const result = loadTestDataImpl(SpreadsheetApp.getActiveSpreadsheet());
   SpreadsheetApp.getUi().alert(result.message);
 }
@@ -107,6 +183,27 @@ export function appSaveClient(input: {
   return respond((ss) => saveClient(ss, input));
 }
 
+/**
+ * After the home screen shows: the assistant workbook sync (first, so the
+ * reminders include the assistant's changes), reminders, and the month's Excel
+ * copy when it is due.
+ */
+export function appHousekeeping(): HousekeepingResult {
+  try {
+    const ss = workbook();
+    let assistant: string | null;
+    try {
+      const sync = syncAssistant(ss);
+      assistant = sync && assistantNews(sync);
+    } catch (err) {
+      assistant = `The assistant workbook could not be updated: ${(err as Error).message}`;
+    }
+    return { ...housekeeping(ss), assistant };
+  } catch (err) {
+    return { ok: false, error: (err as Error).message };
+  }
+}
+
 /** Contact screenshots → new-client form values (nothing is saved). */
 export function appReadContact(shots: Screenshot[]): ReadResult {
   try {
@@ -136,7 +233,8 @@ export function appSaveExpense(input: unknown, receipt: ReceiptUpload | null): A
  * run is `npm run test:remote`, one execution per suite.
  */
 export function selfTest(): void {
-  const reports = (['phase4'] as Suite[]).map(runSelfTest);
+  if (__RELEASE__) throw new Error('The self-test is for the DEV workbook only');
+  const reports = (['phase7'] as Suite[]).map(runSelfTest);
   const results = reports.flatMap((r) => r.results);
   const failures = results
     .filter((r) => !r.ok)
@@ -166,6 +264,14 @@ export function runSelfTestPhase3Json(): string {
 
 export function runSelfTestPhase4Json(): string {
   return JSON.stringify(runSelfTest('phase4'));
+}
+
+export function runSelfTestPhase6Json(): string {
+  return JSON.stringify(runSelfTest('phase6'));
+}
+
+export function runSelfTestPhase7Json(): string {
+  return JSON.stringify(runSelfTest('phase7'));
 }
 
 /**

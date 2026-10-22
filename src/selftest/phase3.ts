@@ -49,7 +49,7 @@ function loadReportData(ss: Spreadsheet): void {
     { clientId: C2, carrier: 'Guarantee Trust Life', productType: 'Final expense - Graded', premium: 1200, paymentMode: 'Annual', applicationDate: d('2026-05-25'), issueDate: d('2026-05-30'), effectiveDate: d('2026-06-01'), status: 'Paid as issued' },
     { clientId: C4, carrier: 'Mutual of Omaha', productType: 'Final expense - Level', premium: 80, paymentMode: 'Monthly', applicationDate: d('2026-09-10'), status: 'Pending' },
     { clientId: C5, carrier: 'Mutual of Omaha', productType: 'Final expense - Level', premium: 60, paymentMode: 'Monthly', applicationDate: d('2025-07-01'), issueDate: d('2025-07-25'), effectiveDate: d('2025-08-01'), status: 'Deceased' },
-    { clientId: C3, carrier: 'Combined Insurance', productType: 'Final expense - Level', premium: 70, paymentMode: 'Monthly', applicationDate: d('2026-07-20'), issueDate: d('2026-07-30'), effectiveDate: d('2026-08-01'), status: 'Insufficient funds' },
+    { clientId: C3, carrier: 'Combined Insurance', productType: 'Final expense - Level', premium: 70, paymentMode: 'Monthly', applicationDate: d('2026-07-20'), issueDate: d('2026-07-30'), effectiveDate: d('2026-08-01'), firstDraftDate: d('2026-08-05'), status: 'Insufficient funds' },
   ]); // prettier-ignore
   // Appending stamps today as the status date; set the real ones.
   const byId = new Map(readRecords(ss, 'Policies').map((r) => [r.rec.policyId, r.row]));
@@ -131,7 +131,11 @@ export const PHASE3_CASES: TestCase[] = [
         ],
         'months (pending and death claim left out)',
       );
-      eq(p[1].persistencyStart instanceof Date, true, 'start is a date');
+      eq(
+        p.map((r) => (r.persistencyStart instanceof Date ? r.persistencyStart.getDate() : '')),
+        [15, 1, 1, '', 1, 5],
+        'start: first draft date, else effective date',
+      );
       eq(p[4].statusGroup, 'claim', 'Deceased is a claim, not a lapse');
     },
   },
@@ -217,20 +221,19 @@ export const PHASE3_CASES: TestCase[] = [
     },
   },
   {
-    name: 'Tax & hours: both car methods, categories, weekly hours',
+    name: 'Tax & hours: mileage method, categories, weekly hours',
     run: (ss) => {
       const amount = (label: string) => round(rowOf(ss, TAX_REPORT, label)[1]);
       eq(
         [
           TAX_ROWS.miles,
           TAX_ROWS.deduction,
-          TAX_ROWS.expenses,
+          TAX_ROWS.otherExpenses,
+          TAX_ROWS.total,
           TAX_ROWS.gas,
-          TAX_ROWS.mileageMethod,
-          TAX_ROWS.gasMethod,
           TAX_ROWS.leadTab,
         ].map(amount),
-        [150, 110.5, 131, 40, 201.5, 131, 66],
+        [150, 110.5, 91, 201.5, 40, 66],
         'car and expenses',
       );
       eq(

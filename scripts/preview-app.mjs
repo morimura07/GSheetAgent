@@ -30,7 +30,7 @@ const lists = {
   PolicyStatuses: ['Pending', 'Paid as issued'],
   ExpenseCategories: ['Gas', 'Leads', 'Food', 'Misc'],
   PaymentMethods: ['Debit card', 'Credit card', 'Cash'],
-  HoursActivities: ['Dialing', 'Appointments', 'Travel'],
+  HoursActivities: ['Dialing', 'Field', 'Admin', 'Other'],
   BeneficiaryTypes: ['Primary', 'Contingent'],
 };
 const idle = {
@@ -101,6 +101,19 @@ const draft = {
   removed: 17,
 };
 
+// Reminders and a just-saved monthly Excel copy (fake data).
+const house = {
+  ok: true,
+  reminders: [
+    { kind: 'atRisk', date: '2026-10-22', ref: 'PO-0002', text: 'Insufficient funds: Test Alpha (Transamerica). Call to fix the payment (drafts 3rd)' },
+    { kind: 'draft', date: '2026-10-20', ref: 'PO-0003', text: 'First draft for Test Bravo (Mutual of Omaha) was due 10/20: check it went through, then update the status' },
+    { kind: 'lead', date: '2026-10-19', ref: 'LD-0004', text: 'Test Delta (Mail-in lead) came in 3 days ago, not contacted yet' },
+    { kind: 'birthday', date: '2026-10-24', ref: 'CL-0001', text: 'Test Alpha turns 70 on Sat 10/24' },
+  ],
+  exported: { id: 'x', name: 'Agent Tracker 2026-10-22.xlsx', link: '#' },
+  assistant: 'From your assistant: 2 changes, 1 new lead.',
+}; // prettier-ignore
+
 // Each scenario: the boot data, what the fake server answers, and clicks to make after load.
 const scenarios = {
   'home-idle': { boot: idle, height: 1000 },
@@ -156,12 +169,13 @@ for (const [name, s] of Object.entries(scenarios)) {
   const stub = `<script>
     const BOOT = ${JSON.stringify(s.boot)};
     const SAVE = ${JSON.stringify(s.save ?? { ok: true, message: 'Saved', boot: s.boot })};
+    const HOUSE = ${JSON.stringify(s.house ?? house)};
     function runner() {
       let ok = () => {};
       const r = new Proxy({}, { get: (_, k) =>
         k === 'withSuccessHandler' ? (f) => ((ok = f), r)
         : k === 'withFailureHandler' ? () => r
-        : () => setTimeout(() => ok(k === 'appBoot' ? BOOT : SAVE), 20) });
+        : () => setTimeout(() => ok(k === 'appBoot' ? BOOT : k === 'appHousekeeping' ? HOUSE : SAVE), 20) });
       return r;
     }
     window.google = { script: { get run() { return runner(); } } };

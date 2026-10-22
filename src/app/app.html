@@ -103,6 +103,20 @@
         justify-content: space-between;
         align-items: center;
       }
+      ul.reminders {
+        margin: 0;
+        padding-left: 18px;
+      }
+      ul.reminders li {
+        margin: 6px 0;
+      }
+      ul.reminders li.atRisk strong,
+      ul.reminders li.draft strong {
+        color: var(--error);
+      }
+      a {
+        color: var(--primary);
+      }
       .hidden {
         display: none !important;
       }

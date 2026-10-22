@@ -82,6 +82,7 @@ when they are typed into any text field of the app.
 
   The samples are built into the DEV script project only when `samples/` exists. Without
   that folder the OCR cases report "not tested".
+
 - `npm run preview:app` shows the new screens (screenshots, check-contact).
 - Speed: about 5-6 s per screenshot on Google's side, so a typical 2-3 screenshot contact
   takes 10-20 s.

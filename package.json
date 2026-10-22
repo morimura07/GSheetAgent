@@ -14,6 +14,7 @@
     "test:remote": "npm run typecheck && npm test && node scripts/remote-test.mjs",
     "deploy:app": "npm run check && node scripts/deploy-app.mjs",
     "preview:app": "npm run build && node scripts/preview-app.mjs",
+    "template": "npm run typecheck && npm test && node scripts/make-template.mjs",
     "open": "clasp open-script"
   },
   "devDependencies": {
