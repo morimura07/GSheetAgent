@@ -1,6 +1,6 @@
 // Builds and pushes to the DEV Apps Script project, runs the in-Sheets
 // integration tests with `clasp run`, and prints the results.
-// Usage: node scripts/remote-test.mjs [phase1|phase2]   (default: every suite)
+// Usage: node scripts/remote-test.mjs [phase1|phase2|phase4]   (default: every suite)
 // Exit code: 0 all passed, 1 test failures, 2 could not run.
 import { execSync } from 'node:child_process';
 
@@ -19,7 +19,7 @@ console.log('• clasp push');
 sh('npx clasp push -f');
 // One `clasp run` per suite: each resets the SELF-TEST sheet and must finish
 // inside the 6-minute Apps Script limit on its own.
-const SUITES = ['Phase1', 'Phase2'];
+const SUITES = ['Phase1', 'Phase2', 'Phase4'];
 const only = process.argv[2]?.toLowerCase();
 let failed = 0;
 

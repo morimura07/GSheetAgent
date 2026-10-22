@@ -9,13 +9,22 @@ import {
   SIMPLE_LISTS,
   settingsTableStart,
 } from '../config/schema';
-import { cleanForm, type CleanValues, type FieldSpec, type FormContext } from '../lib/forms';
+import { parseContact, type ReaderCarrier } from '../lib/contactReader';
+import {
+  cleanForm,
+  formatPhone,
+  type CleanValues,
+  type FieldSpec,
+  type FormContext,
+} from '../lib/forms';
 import { isoToDate } from '../lib/rows';
 import { appendRecords, readRecords, updateRecord } from '../sheets/records';
+import { ocrImage } from '../sheets/ocr';
 import { saveReceipt } from '../sheets/receipts';
 import { toIsoDate } from '../sheets/util';
 import {
   APP_LISTS,
+  BENEFICIARY_FORM,
   CLIENT_FORM,
   CLIENT_LEAD_FIELD,
   CLOCK_IN_FORM,
@@ -26,6 +35,7 @@ import {
   TRIP_FORM,
   TRIP_START_FORM,
   type Boot,
+  type ContactDraft,
   type Option,
   type ReceiptUpload,
   type ShiftView,
@@ -72,14 +82,22 @@ function basics(
 // Lists from the last read in this execution (each google.script.run call is a new one).
 let listCache: { id: string; lists: Record<string, string[]> } | undefined;
 
+function readTab(ss: Spreadsheet, name: string): unknown[][] {
+  const sheet = ss.getSheetByName(name);
+  return sheet
+    ? sheet.getRange(2, 1, sheet.getMaxRows() - 1, sheet.getMaxColumns()).getValues()
+    : [];
+}
+
+/** Column index (0-based) of a Settings table column on the Settings tab. */
+function settingsColumn(tableKey: string, columnKey: string): number {
+  const table = SETTINGS_TABLES.find((t) => t.key === tableKey)!;
+  return settingsTableStart(table.key) - 1 + table.columns.findIndex((c) => c.key === columnKey);
+}
+
 /** The app's dropdown lists, from one read of Lists and one of Settings. */
 function readLists(ss: Spreadsheet): Record<string, string[]> {
-  const read = (name: string) => {
-    const sheet = ss.getSheetByName(name);
-    return sheet
-      ? sheet.getRange(2, 1, sheet.getMaxRows() - 1, sheet.getMaxColumns()).getValues()
-      : [];
-  };
+  const read = (name: string) => readTab(ss, name);
   const listRows = read(LISTS_TAB);
   const settingsRows = read(SETTINGS_TAB);
   const column = (rows: unknown[][], col: number) =>
@@ -90,10 +108,7 @@ function readLists(ss: Spreadsheet): Record<string, string[]> {
   for (const name of APP_LISTS) {
     if (name in SETTINGS_LISTS) {
       const src = SETTINGS_LISTS[name as keyof typeof SETTINGS_LISTS];
-      const table = SETTINGS_TABLES.find((t) => t.key === src.table)!;
-      const col =
-        settingsTableStart(table.key) - 1 + table.columns.findIndex((c) => c.key === src.column);
-      lists[name] = column(settingsRows, col);
+      lists[name] = column(settingsRows, settingsColumn(src.table, src.column));
     } else {
       lists[name] = column(listRows, simple.indexOf(name));
     }
@@ -149,7 +164,8 @@ function toCells(specs: FieldSpec[], values: CleanValues): Input {
   for (const s of specs) {
     if (!(s.key in values)) continue;
     const v = values[s.key];
-    cells[s.key] = s.kind === 'date' ? isoToDate(String(v)) : v;
+    cells[s.key] =
+      s.kind === 'date' ? isoToDate(String(v)) : s.kind === 'percent' ? Number(v) / 100 : v;
   }
   return cells;
 }
@@ -174,7 +190,7 @@ export function saveLead(ss: Spreadsheet, input: unknown): string {
 
 export function saveClient(
   ss: Spreadsheet,
-  input: { client?: unknown; policy?: unknown; leadId?: unknown },
+  input: { client?: unknown; policy?: unknown; leadId?: unknown; beneficiaries?: unknown },
 ): string {
   const ctx = context(ss);
   const errors: Record<string, string> = {};
@@ -192,6 +208,13 @@ export function saveClient(
     ? attempt(() => clean(POLICY_FORM, input.policy, ctx, 'policy.'))
     : null;
   const link = attempt(() => clean([CLIENT_LEAD_FIELD], { leadId: input.leadId }, ctx));
+  const benInput = Array.isArray(input.beneficiaries) ? input.beneficiaries : [];
+  const beneficiaries = benInput.map((b, i) =>
+    attempt(() => clean(BENEFICIARY_FORM, b, ctx, `ben.${i}.`)),
+  );
+  if (benInput.length && !input.policy) {
+    errors.beneficiaries = 'Beneficiaries belong to a policy: add the policy';
+  }
   if (Object.keys(errors).length) throw new FormError(errors);
 
   const [saved] = appendRecords(ss, 'Clients', [toCells(CLIENT_FORM, client!)]);
@@ -201,6 +224,14 @@ export function saveClient(
   if (policy) {
     const [p] = appendRecords(ss, 'Policies', [{ ...toCells(POLICY_FORM, policy), clientId }]);
     parts.push(`policy ${p.policyId}`);
+    if (beneficiaries.length) {
+      appendRecords(
+        ss,
+        'Beneficiaries',
+        beneficiaries.map((b) => ({ ...toCells(BENEFICIARY_FORM, b!), policyId: p.policyId })),
+      );
+      parts.push(`${beneficiaries.length} beneficiar${beneficiaries.length === 1 ? 'y' : 'ies'}`);
+    }
   }
   if (link?.leadId) {
     const lead = readRecords(ss, 'Leads').find(({ rec }) => rec.leadId === link.leadId)!;
@@ -212,6 +243,78 @@ export function saveClient(
     parts.push(`linked to lead ${link.leadId}`);
   }
   return parts.join(', ');
+}
+
+// ---- Contact screenshots ---------------------------------------------------
+
+export interface Screenshot {
+  base64: string;
+  mimeType: string;
+}
+
+export const MAX_SCREENSHOTS = 6;
+
+/**
+ * Reads a contact from 1-6 screenshots into new-client form values. Nothing is
+ * saved: the agent checks the form and taps Save (saveClient).
+ */
+export function readContactScreenshots(ss: Spreadsheet, shots: Screenshot[]): ContactDraft {
+  if (!Array.isArray(shots) || !shots.length) throw new Error('Pick at least one screenshot');
+  if (shots.length > MAX_SCREENSHOTS) {
+    throw new Error(`Pick up to ${MAX_SCREENSHOTS} screenshots of one contact`);
+  }
+  const texts = shots.map((s) => ocrImage(s.base64, s.mimeType));
+  return draftFromText(ss, texts);
+}
+
+/** The reader on text already recognised (the self-test also uses it). */
+export function draftFromText(ss: Spreadsheet, texts: string[]): ContactDraft {
+  const b = basics(ss);
+  const parsed = parseContact(texts, {
+    lists: b.lists,
+    carriers: readCarriers(ss),
+    today: b.today,
+  });
+  const { referredByName, ...draft } = parsed;
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  if (referredByName) {
+    const match = b.clients.find(
+      (c) => norm(c.label.replace(/\s*\([^)]*\)$/, '')) === norm(referredByName),
+    );
+    if (match) draft.client.referredBy = match.id;
+    else {
+      draft.client.notes = [draft.client.notes, `Referred by ${referredByName}`]
+        .filter(Boolean)
+        .join('; ');
+      draft.warnings.push(
+        `Referred by ${referredByName}: no client with that name yet (put in notes)`,
+      );
+    }
+  }
+  const name = norm(`${draft.client.firstName ?? ''}${draft.client.lastName ?? ''}`);
+  const lead = b.openLeads.find(
+    (l) =>
+      (draft.client.phone && formatPhone(l.fill?.phone ?? '') === draft.client.phone) ||
+      (name && norm(`${l.fill?.firstName ?? ''}${l.fill?.lastName ?? ''}`) === name),
+  );
+  return { ...draft, leadId: lead?.id ?? '' };
+}
+
+/** Carrier names with the shorthand the client uses in notes (Settings > Carriers). */
+function readCarriers(ss: Spreadsheet): ReaderCarrier[] {
+  const rows = readTab(ss, SETTINGS_TAB);
+  const name = settingsColumn('Carriers', 'name');
+  const aliases = settingsColumn('Carriers', 'aliases');
+  return rows
+    .filter((r) => String(r[name] ?? '').trim())
+    .map((r) => ({
+      name: String(r[name]).trim(),
+      aliases: String(r[aliases] ?? '')
+        .split(',')
+        .map((a) => a.trim())
+        .filter(Boolean),
+    }));
 }
 
 // ---- Hours -----------------------------------------------------------------

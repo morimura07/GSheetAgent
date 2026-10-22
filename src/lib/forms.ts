@@ -9,6 +9,7 @@ export type FieldKind =
   | 'date'
   | 'money'
   | 'number'
+  | 'percent'
   | 'list'
   | 'client'
   | 'lead';
@@ -75,11 +76,23 @@ const SENSITIVE: { pattern: RegExp; message: string }[] = [
 ];
 
 export function sensitiveText(text: string): string | undefined {
-  for (const { pattern, message } of SENSITIVE) if (pattern.test(text)) return message;
-  for (const run of text.match(/\d{13,19}/g) ?? []) {
-    if (luhn(run)) return SENSITIVE[1].message;
+  return findSensitive(text)?.message;
+}
+
+/** The first SSN, card, bank or license number in `text`: where it starts and why. */
+export function findSensitive(text: string): { index: number; message: string } | undefined {
+  let found: { index: number; message: string } | undefined;
+  const consider = (index: number, message: string) => {
+    if (!found || index < found.index) found = { index, message };
+  };
+  for (const { pattern, message } of SENSITIVE) {
+    const m = pattern.exec(text);
+    if (m) consider(m.index, message);
   }
-  return undefined;
+  for (const m of text.matchAll(/\d{13,19}/g)) {
+    if (luhn(m[0])) consider(m.index!, SENSITIVE[1].message);
+  }
+  return found;
 }
 
 function luhn(digits: string): boolean {
@@ -143,6 +156,11 @@ function cleanField(spec: FieldSpec, text: string, ctx: FormContext): FieldResul
       const n = parseAmount(text);
       if (n === undefined || n < 0) return { error: 'Enter a number (0 or more)' };
       return { value: spec.kind === 'money' ? Math.round(n * 100) / 100 : n };
+    }
+    case 'percent': {
+      const n = parseAmount(text.replace(/%$/, ''));
+      if (n === undefined || n <= 0 || n > 100) return { error: 'Enter a percent from 1 to 100' };
+      return { value: n };
     }
     case 'list': {
       const options = ctx.lists[spec.list ?? ''] ?? [];

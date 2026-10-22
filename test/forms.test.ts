@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BENEFICIARY_FORM,
   CLIENT_FORM,
   CLOCK_IN_FORM,
   EXPENSE_FORM,
@@ -33,6 +34,7 @@ describe('form specs match the workbook', () => {
     ['lead', LEAD_FORM, 'Leads'],
     ['client', CLIENT_FORM, 'Clients'],
     ['policy', POLICY_FORM, 'Policies'],
+    ['beneficiary', BENEFICIARY_FORM, 'Beneficiaries'],
     ['expense', EXPENSE_FORM, 'Expenses'],
     ['clock in', CLOCK_IN_FORM, 'Hours'],
     ['trip start', TRIP_START_FORM, 'Mileage'],
@@ -50,6 +52,7 @@ describe('form specs match the workbook', () => {
         expect(['id', 'formula', 'timestamp']).not.toContain(column!.type);
         if (spec.kind === 'list') expect(spec.list).toBe(column!.list);
         if (column!.type === 'date') expect(spec.kind).toBe('date');
+        if (column!.type === 'percent') expect(spec.kind).toBe('percent');
         if (column!.type === 'ref') expect(spec.kind).toBe('client');
       }
     },
@@ -61,7 +64,7 @@ describe('form specs match the workbook', () => {
   });
 
   it('never asks for SSN or banking details', () => {
-    const all = [LEAD_FORM, CLIENT_FORM, POLICY_FORM, EXPENSE_FORM].flat();
+    const all = [LEAD_FORM, CLIENT_FORM, POLICY_FORM, BENEFICIARY_FORM, EXPENSE_FORM].flat();
     for (const f of all)
       expect(`${f.key} ${f.label}`).not.toMatch(/ssn|social|bank|routing|account/i);
   });

@@ -1,19 +1,23 @@
 // Apps Script entry points. Every export becomes a top-level function in
 // dist/Code.js (see build.mjs), so menus and triggers can call it by name.
 
-import { loadBoot, rememberWorkbook, respond } from './app/api';
-import type { ApiResult, Boot, ReceiptUpload } from './app/forms';
+import { loadBoot, rememberWorkbook, respond, workbook } from './app/api';
+import type { ApiResult, Boot, ReadResult, ReceiptUpload } from './app/forms';
 import {
+  readContactScreenshots,
   saveClient,
   saveExpense,
   saveLead,
   shiftAction,
   tripAction,
+  type Screenshot,
   type ShiftAction,
   type TripAction,
 } from './app/service';
 import { runSelfTest, type Suite } from './selftest/run';
+import { sampleImages } from './selftest/samples';
 import { handleEdit } from './sheets/edits';
+import { ocrImage } from './sheets/ocr';
 import { setupWorkbook } from './sheets/setup';
 import { loadTestData as loadTestDataImpl } from './sheets/testData';
 
@@ -59,8 +63,8 @@ export function showPhoneAppLink(): void {
     return;
   }
   const html = HtmlService.createHtmlOutput(
-    `<p style="font-family:sans-serif">Open this on your phone (signed in to this Google account),
-     then Share &gt; Add to Home Screen:</p>
+    `<p style="font-family:sans-serif">Open this on your phone in Chrome (signed in to this Google
+     account), then tap &#8942; &gt; Add to Home screen:</p>
      <p style="font-family:sans-serif;word-break:break-all"><a href="${url}" target="_blank">${url}</a></p>`,
   )
     .setWidth(420)
@@ -98,8 +102,18 @@ export function appSaveClient(input: {
   client?: unknown;
   policy?: unknown;
   leadId?: unknown;
+  beneficiaries?: unknown;
 }): ApiResult {
   return respond((ss) => saveClient(ss, input));
+}
+
+/** Contact screenshots → new-client form values (nothing is saved). */
+export function appReadContact(shots: Screenshot[]): ReadResult {
+  try {
+    return { ok: true, draft: readContactScreenshots(workbook(), shots) };
+  } catch (err) {
+    return { ok: false, error: (err as Error).message };
+  }
 }
 
 export function appShift(action: ShiftAction, input: unknown): ApiResult {
@@ -122,7 +136,7 @@ export function appSaveExpense(input: unknown, receipt: ReceiptUpload | null): A
  * run is `npm run test:remote`, one execution per suite.
  */
 export function selfTest(): void {
-  const reports = (['phase2'] as Suite[]).map(runSelfTest);
+  const reports = (['phase4'] as Suite[]).map(runSelfTest);
   const results = reports.flatMap((r) => r.results);
   const failures = results
     .filter((r) => !r.ok)
@@ -144,4 +158,18 @@ export function runSelfTestPhase1Json(): string {
 
 export function runSelfTestPhase2Json(): string {
   return JSON.stringify(runSelfTest('phase2'));
+}
+
+export function runSelfTestPhase4Json(): string {
+  return JSON.stringify(runSelfTest('phase4'));
+}
+
+/**
+ * DEV tool for `clasp run`: the OCR text of the client's test screenshots
+ * (samples/), so the contact reader can be tuned on exactly what Drive returns.
+ */
+export function ocrSamplesJson(): string {
+  return JSON.stringify(
+    sampleImages().map((s) => ({ name: s.name, text: ocrImage(s.base64, s.mimeType) })),
+  );
 }

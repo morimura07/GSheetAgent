@@ -3,6 +3,7 @@
 
 import { initialValues, type FieldSpec } from '../lib/forms';
 import {
+  BENEFICIARY_FORM,
   CLIENT_FORM,
   CLIENT_LEAD_FIELD,
   CLOCK_IN_FORM,
@@ -14,7 +15,9 @@ import {
   TRIP_START_FORM,
   type ApiResult,
   type Boot,
+  type ContactDraft,
   type Option,
+  type ReadResult,
   type ReceiptUpload,
 } from './forms';
 
@@ -197,7 +200,8 @@ function home(): void {
     h(
       'div',
       { class: 'actions' },
-      h('button', { class: 'tile', onclick: newClient }, 'New client'),
+      h('button', { class: 'tile', onclick: () => newClient() }, 'New client'),
+      h('button', { class: 'tile', onclick: readScreenshots }, 'Client from screenshots'),
       h('button', { class: 'tile', onclick: newLead }, 'New lead'),
       h('button', { class: 'tile', onclick: newExpense }, 'Add expense'),
     ),
@@ -310,18 +314,28 @@ function newLead(): void {
   );
 }
 
-function newClient(): void {
+function newClient(draft?: ContactDraft): void {
   const policy = h(
     'div',
-    { class: 'card hidden' },
+    { class: `card${draft?.policy ? '' : ' hidden'}` },
     h('h2', {}, 'Policy'),
-    fields(POLICY_FORM, 'policy.'),
+    fields(POLICY_FORM, 'policy.', { ...initialValues(POLICY_FORM, boot.today), ...draft?.policy }),
   );
-  const hasPolicy = h('input', { type: 'checkbox' }) as HTMLInputElement;
+  const bens = beneficiaryEditor(draft?.beneficiaries ?? []);
+  policy.append(h('h2', { class: 'sub' }, 'Beneficiaries'), bens.el);
+  const hasPolicy = h('input', {
+    type: 'checkbox',
+    checked: Boolean(draft?.policy),
+  }) as HTMLInputElement;
   hasPolicy.addEventListener('change', () => policy.classList.toggle('hidden', !hasPolicy.checked));
 
-  const clientFields = fields(CLIENT_FORM);
-  const leadPicker = boot.openLeads.length ? fields([CLIENT_LEAD_FIELD]) : null;
+  const clientFields = fields(CLIENT_FORM, '', {
+    ...initialValues(CLIENT_FORM, boot.today),
+    ...draft?.client,
+  });
+  const leadPicker = boot.openLeads.length
+    ? fields([CLIENT_LEAD_FIELD], '', { leadId: draft?.leadId ?? '' })
+    : null;
   leadPicker?.querySelector('select')!.addEventListener('change', (e) => {
     const lead = boot.openLeads.find((l) => l.id === (e.target as HTMLSelectElement).value);
     for (const [key, value] of Object.entries(lead?.fill ?? {})) {
@@ -331,7 +345,8 @@ function newClient(): void {
   });
 
   const form = page(
-    'New client',
+    draft ? 'Check contact' : 'New client',
+    ...(draft ? [draftNotice(draft)] : []),
     ...(leadPicker ? [leadPicker] : []),
     clientFields,
     h('label', { class: 'check' }, hasPolicy, ' Add a policy (application written)'),
@@ -343,10 +358,119 @@ function newClient(): void {
         call('appSaveClient', {
           client: collect(form, CLIENT_FORM),
           policy: hasPolicy.checked ? collect(form, POLICY_FORM, 'policy.') : null,
+          beneficiaries: hasPolicy.checked ? bens.read() : [],
           leadId: leadPicker ? collect(form, [CLIENT_LEAD_FIELD]).leadId : '',
         }),
       ),
     ),
+  );
+}
+
+/** What the reader wants checked, and what it left out. */
+function draftNotice(draft: ContactDraft): HTMLElement {
+  const box = h('section', { class: 'card notice' }, h('h2', {}, 'Check before saving'));
+  if (draft.warnings.length) {
+    box.append(h('ul', {}, ...draft.warnings.map((w) => h('li', {}, w))));
+  } else {
+    box.append(h('p', {}, 'Read from the screenshots. Check the fields, then tap Save.'));
+  }
+  if (draft.removed) {
+    const lines = `${draft.removed} line${draft.removed === 1 ? '' : 's'}`;
+    box.append(
+      h('p', { class: 'status' }, `${lines} with SSN, card, bank or license numbers left out.`),
+    );
+  }
+  if (draft.unread.length) {
+    box.append(
+      h(
+        'details',
+        {},
+        h('summary', {}, `Not saved from the notes (${draft.unread.length})`),
+        h('ul', {}, ...draft.unread.map((u) => h('li', {}, u))),
+      ),
+    );
+  }
+  return box;
+}
+
+/** Any number of beneficiaries; field names are ben.<n>.<key> so server errors find them. */
+function beneficiaryEditor(initial: Record<string, string>[]): {
+  el: HTMLElement;
+  read: () => Record<string, string>[];
+} {
+  const box = h('div', { class: 'bens' });
+  let rows = initial;
+  const read = () => rows.map((_, i) => collect(box, BENEFICIARY_FORM, `ben.${i}.`));
+  const render = () => {
+    const remove = (i: number) => () => {
+      rows = read().filter((_, j) => j !== i);
+      render();
+    };
+    const add = () => {
+      rows = [...read(), {}];
+      render();
+    };
+    box.replaceChildren(
+      ...rows.map((values, i) =>
+        h(
+          'div',
+          { class: 'ben' },
+          h(
+            'div',
+            { class: 'ben-head' },
+            h('strong', {}, `Beneficiary ${i + 1}`),
+            h('button', { type: 'button', class: 'link', onclick: remove(i) }, 'Remove'),
+          ),
+          fields(BENEFICIARY_FORM, `ben.${i}.`, {
+            ...initialValues(BENEFICIARY_FORM, boot.today),
+            ...values,
+          }),
+        ),
+      ),
+      h('button', { type: 'button', class: 'link', onclick: add }, '+ Add beneficiary'),
+    );
+  };
+  render();
+  return { el: box, read };
+}
+
+function readScreenshots(): void {
+  const file = h('input', { type: 'file', accept: 'image/*', multiple: true }) as HTMLInputElement;
+  const thumbs = h('div', { class: 'thumbs' });
+  file.addEventListener('change', () => {
+    thumbs.replaceChildren(
+      ...[...(file.files ?? [])].map((f) => h('img', { src: URL.createObjectURL(f), alt: '' })),
+    );
+  });
+  const form = page(
+    'Client from screenshots',
+    h(
+      'p',
+      { class: 'status' },
+      'Pick the screenshots of one contact: the top of the contact and the notes. ' +
+        'They are read and deleted straight away. Nothing is saved until you check the form.',
+    ),
+    h('label', { class: 'field' }, h('span', {}, 'Screenshots'), file),
+    thumbs,
+  );
+  form.append(
+    saveButton('Read contact', async (b) => {
+      const files = [...(file.files ?? [])];
+      if (b.disabled) return;
+      if (!files.length) return toast('Pick at least one screenshot', true);
+      b.disabled = true;
+      b.textContent = 'Reading…';
+      try {
+        const shots = await Promise.all(files.map((f) => shrinkPhoto(f, OCR_SIDE, 0.85)));
+        const result = await call<ReadResult>('appReadContact', shots);
+        if (result.ok) return newClient(result.draft);
+        toast(result.error, true);
+      } catch (err) {
+        toast(`Could not read: ${(err as Error).message}`, true);
+      }
+      b.disabled = false;
+      b.textContent = 'Read contact';
+    }),
   );
 }
 
@@ -376,30 +500,36 @@ function newExpense(): void {
 
 // ---- Receipts --------------------------------------------------------------
 
-const MAX_SIDE = 1600;
+const RECEIPT_SIDE = 1600;
+/** Screenshots keep their full height (about 2340 px) so small note text stays readable. */
+const OCR_SIDE = 2400;
 
 /** Photos are shrunk to JPEG (phone photos are several MB); PDFs are sent as they are. */
 async function readReceipt(file: File): Promise<ReceiptUpload> {
   if (!file.type.startsWith('image/')) {
     return { base64: await fileBase64(file), mimeType: file.type, name: file.name };
   }
+  return { ...(await shrinkPhoto(file, RECEIPT_SIDE, 0.8)), name: 'receipt.jpg' };
+}
+
+async function shrinkPhoto(
+  file: File,
+  maxSide: number,
+  quality: number,
+): Promise<{ base64: string; mimeType: string }> {
   const img = await new Promise<HTMLImageElement>((resolve, reject) => {
     const i = new Image();
     i.onload = () => resolve(i);
     i.onerror = () => reject(new Error('Could not read that photo'));
     i.src = URL.createObjectURL(file);
   });
-  const scale = Math.min(1, MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+  const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
   const canvas = document.createElement('canvas');
   canvas.width = Math.round(img.naturalWidth * scale);
   canvas.height = Math.round(img.naturalHeight * scale);
   canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
-  const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-  return {
-    base64: dataUrl.slice(dataUrl.indexOf(',') + 1),
-    mimeType: 'image/jpeg',
-    name: 'receipt.jpg',
-  };
+  const dataUrl = canvas.toDataURL('image/jpeg', quality);
+  return { base64: dataUrl.slice(dataUrl.indexOf(',') + 1), mimeType: 'image/jpeg' };
 }
 
 function fileBase64(file: File): Promise<string> {

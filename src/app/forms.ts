@@ -34,7 +34,6 @@ export const CLIENT_FORM: FieldSpec[] = [
   { key: 'smoker', label: 'Smoker', kind: 'list', list: 'Smoker' },
   { key: 'height', label: 'Height', kind: 'text' },
   { key: 'weightLbs', label: 'Weight (lbs)', kind: 'number' },
-  { key: 'healthConditions', label: 'Health conditions', kind: 'longtext' },
   { key: 'existingCoverage', label: 'Existing coverage', kind: 'text' },
   { key: 'medicarePlan', label: 'Medicare plan', kind: 'list', list: 'MedicarePlanTypes' },
   { key: 'medicareId', label: 'Medicare ID', kind: 'text' },
@@ -57,7 +56,18 @@ export const POLICY_FORM: FieldSpec[] = [
     default: 'Monthly',
   },
   { key: 'applicationDate', label: 'Application date', kind: 'date', today: true, notFuture: true },
+  { key: 'issueDate', label: 'Issue date', kind: 'date' },
+  { key: 'draftDay', label: 'Draft day', kind: 'text' },
   { key: 'status', label: 'Status', kind: 'list', list: 'PolicyStatuses', default: 'Pending' },
+];
+
+/** Beneficiaries of the new policy (any number). Share is a percent, 1-100. */
+export const BENEFICIARY_FORM: FieldSpec[] = [
+  { key: 'name', label: 'Beneficiary name', kind: 'text', required: true },
+  { key: 'relationship', label: 'Relationship', kind: 'text' },
+  { key: 'kind', label: 'Type', kind: 'list', list: 'BeneficiaryTypes', default: 'Primary' },
+  { key: 'share', label: 'Share %', kind: 'percent' },
+  { key: 'phone', label: 'Phone', kind: 'phone' },
 ];
 
 /** The lead a new client came from (not a Clients column: it updates the Leads row). */
@@ -98,7 +108,7 @@ export const TRIP_FORM: FieldSpec[] = [
 /** Lists the app needs to fill its dropdowns. */
 export const APP_LISTS = [
   ...new Set(
-    [LEAD_FORM, CLIENT_FORM, POLICY_FORM, EXPENSE_FORM, CLOCK_IN_FORM]
+    [LEAD_FORM, CLIENT_FORM, POLICY_FORM, BENEFICIARY_FORM, EXPENSE_FORM, CLOCK_IN_FORM]
       .flat()
       .flatMap((f) => (f.list ? [f.list] : [])),
   ),
@@ -141,6 +151,27 @@ export interface Boot {
 export type ApiResult =
   | { ok: true; message: string; boot: Boot }
   | { ok: false; error?: string; errors?: Record<string, string> };
+
+/**
+ * What the screenshot reader found, as form values for the new-client screen
+ * (dates "yyyy-mm-dd", numbers as text). Nothing is saved until the agent
+ * checks it and taps Save.
+ */
+export interface ContactDraft {
+  client: Record<string, string>;
+  policy: Record<string, string> | null;
+  beneficiaries: Record<string, string>[];
+  /** An open lead with the same phone or name. */
+  leadId: string;
+  /** Things to check before saving. */
+  warnings: string[];
+  /** Note lines the reader did not use: shown for review, never saved. */
+  unread: string[];
+  /** Lines left out because they hold SSN, card, bank or license numbers. */
+  removed: number;
+}
+
+export type ReadResult = { ok: true; draft: ContactDraft } | { ok: false; error: string };
 
 export interface ReceiptUpload {
   base64: string;
