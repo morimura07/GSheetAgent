@@ -28,8 +28,10 @@ describe('default lists', () => {
   });
 
   it('covers every inactive reason the client asked for', () => {
-    const inactive = POLICY_STATUSES.filter((s) => s.group === 'inactive').map((s) => s.name);
-    expect(inactive).toEqual(expect.arrayContaining(['Lapsed', 'Cancelled', 'Deceased']));
+    const group = (name: string) => POLICY_STATUSES.find((s) => s.name === name)?.group;
+    expect(['Lapsed', 'Cancelled'].map(group)).toEqual(['inactive', 'inactive']);
+    // A death ends the policy too, but is not a lapse: kept out of persistency.
+    expect(group('Deceased')).toBe('claim');
   });
 
   it('has sane lead costs, payment modes and mileage rates', () => {

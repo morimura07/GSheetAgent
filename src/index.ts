@@ -160,6 +160,10 @@ export function runSelfTestPhase2Json(): string {
   return JSON.stringify(runSelfTest('phase2'));
 }
 
+export function runSelfTestPhase3Json(): string {
+  return JSON.stringify(runSelfTest('phase3'));
+}
+
 export function runSelfTestPhase4Json(): string {
   return JSON.stringify(runSelfTest('phase4'));
 }
