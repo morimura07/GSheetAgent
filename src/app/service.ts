@@ -19,6 +19,8 @@ import {
 } from '../lib/forms';
 import { isoToDate } from '../lib/rows';
 import { appendRecords, readRecords, updateRecord } from '../sheets/records';
+import { reminders, type Reminder } from '../lib/reminders';
+import { monthlyExportIfDue } from '../sheets/export';
 import { ocrImage } from '../sheets/ocr';
 import { saveReceipt } from '../sheets/receipts';
 import { toIsoDate } from '../sheets/util';
@@ -36,6 +38,7 @@ import {
   TRIP_START_FORM,
   type Boot,
   type ContactDraft,
+  type HousekeepingResult,
   type Option,
   type ReceiptUpload,
   type ShiftView,
@@ -243,6 +246,52 @@ export function saveClient(
     parts.push(`linked to lead ${link.leadId}`);
   }
   return parts.join(', ');
+}
+
+// ---- Reminders and the monthly Excel copy -----------------------------------
+
+/** What needs attention today (birthdays, first drafts, missed payments, leads…). */
+export function readReminders(ss: Spreadsheet): Reminder[] {
+  const iso = (v: unknown) => (v instanceof Date ? toIsoDate(ss, v) : '');
+  const text = (v: unknown) => String(v ?? '').trim();
+  return reminders({
+    today: toIsoDate(ss, new Date()),
+    clients: readRecords(ss, 'Clients').map(({ rec }) => ({
+      id: text(rec.clientId),
+      name: `${text(rec.firstName)} ${text(rec.lastName)}`.trim(),
+      birthday: iso(rec.birthday),
+    })),
+    policies: readRecords(ss, 'Policies').map(({ rec }) => ({
+      id: text(rec.policyId),
+      client: text(rec.clientName) || text(rec.clientId),
+      carrier: text(rec.carrier),
+      status: text(rec.status),
+      group: text(rec.statusGroup),
+      start: iso(rec.persistencyStart),
+      applicationDate: iso(rec.applicationDate),
+      firstDraftDate: iso(rec.firstDraftDate),
+      draftDay: text(rec.draftDay),
+    })),
+    leads: readRecords(ss, 'Leads').map(({ rec }) => ({
+      id: text(rec.leadId),
+      name: `${text(rec.firstName)} ${text(rec.lastName)}`.trim(),
+      leadType: text(rec.leadType),
+      dateReceived: iso(rec.dateReceived),
+      contacted: rec.contacted === true,
+    })),
+  });
+}
+
+/** Reminders, plus the month's Excel copy the first time this runs in a new month. */
+export function housekeeping(ss: Spreadsheet, now = new Date()): HousekeepingResult & { ok: true } {
+  const file = monthlyExportIfDue(ss, now);
+  return {
+    ok: true,
+    reminders: readReminders(ss),
+    exported: file
+      ? { id: file.id, name: file.name ?? 'Excel copy', link: file.webViewLink ?? '' }
+      : null,
+  };
 }
 
 // ---- Contact screenshots ---------------------------------------------------

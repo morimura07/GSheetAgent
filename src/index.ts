@@ -2,9 +2,11 @@
 // dist/Code.js (see build.mjs), so menus and triggers can call it by name.
 
 import { loadBoot, rememberWorkbook, respond, workbook } from './app/api';
-import type { ApiResult, Boot, ReadResult, ReceiptUpload } from './app/forms';
+import type { ApiResult, Boot, HousekeepingResult, ReadResult, ReceiptUpload } from './app/forms';
 import {
+  housekeeping,
   readContactScreenshots,
+  readReminders,
   saveClient,
   saveExpense,
   saveLead,
@@ -17,6 +19,7 @@ import {
 import { runSelfTest, type Suite } from './selftest/run';
 import { sampleImages } from './selftest/samples';
 import { handleEdit } from './sheets/edits';
+import { exportToExcel } from './sheets/export';
 import { ocrImage } from './sheets/ocr';
 import { setupWorkbook } from './sheets/setup';
 import { loadTestData as loadTestDataImpl } from './sheets/testData';
@@ -28,6 +31,8 @@ export function onOpen(): void {
     .createMenu('Agent Tracker')
     .addItem('Set up workbook', 'runSetup')
     .addItem('Phone app link', 'showPhoneAppLink')
+    .addItem('Reminders', 'showReminders')
+    .addItem('Save an Excel copy now', 'saveExcelCopy')
     .addSeparator()
     .addItem('Load test data (DEV only)', 'loadTestData')
     .addItem('Run self-test (DEV only)', 'selfTest')
@@ -72,6 +77,38 @@ export function showPhoneAppLink(): void {
   ui.showModalDialog(html, 'Phone app');
 }
 
+export function showReminders(): void {
+  const list = readReminders(SpreadsheetApp.getActiveSpreadsheet());
+  const items = list.map((r) => `<li>${escapeHtml(r.text)} <small>(${r.ref})</small></li>`);
+  const html = HtmlService.createHtmlOutput(
+    `<div style="font-family:sans-serif">${
+      items.length ? `<ul>${items.join('')}</ul>` : '<p>Nothing needs attention today.</p>'
+    }</div>`,
+  )
+    .setWidth(520)
+    .setHeight(Math.min(560, 120 + items.length * 44));
+  SpreadsheetApp.getUi().showModalDialog(html, `Reminders (${list.length})`);
+}
+
+export function saveExcelCopy(): void {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  ss.toast('Saving an Excel copy…', 'Agent Tracker', -1);
+  const file = exportToExcel(ss);
+  const html = HtmlService.createHtmlOutput(
+    `<p style="font-family:sans-serif">Saved <a href="${file.webViewLink}" target="_blank">${escapeHtml(
+      file.name ?? 'the Excel copy',
+    )}</a> in your Drive folder "Excel copies".</p>`,
+  )
+    .setWidth(420)
+    .setHeight(140);
+  ss.toast('Excel copy saved.', 'Agent Tracker', 3);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Excel copy');
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 export function loadTestData(): void {
   const result = loadTestDataImpl(SpreadsheetApp.getActiveSpreadsheet());
   SpreadsheetApp.getUi().alert(result.message);
@@ -107,6 +144,15 @@ export function appSaveClient(input: {
   return respond((ss) => saveClient(ss, input));
 }
 
+/** After the home screen shows: reminders, and the month's Excel copy when it is due. */
+export function appHousekeeping(): HousekeepingResult {
+  try {
+    return housekeeping(workbook());
+  } catch (err) {
+    return { ok: false, error: (err as Error).message };
+  }
+}
+
 /** Contact screenshots → new-client form values (nothing is saved). */
 export function appReadContact(shots: Screenshot[]): ReadResult {
   try {
@@ -136,7 +182,7 @@ export function appSaveExpense(input: unknown, receipt: ReceiptUpload | null): A
  * run is `npm run test:remote`, one execution per suite.
  */
 export function selfTest(): void {
-  const reports = (['phase4'] as Suite[]).map(runSelfTest);
+  const reports = (['phase6'] as Suite[]).map(runSelfTest);
   const results = reports.flatMap((r) => r.results);
   const failures = results
     .filter((r) => !r.ok)
@@ -166,6 +212,10 @@ export function runSelfTestPhase3Json(): string {
 
 export function runSelfTestPhase4Json(): string {
   return JSON.stringify(runSelfTest('phase4'));
+}
+
+export function runSelfTestPhase6Json(): string {
+  return JSON.stringify(runSelfTest('phase6'));
 }
 
 /**
