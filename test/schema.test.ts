@@ -51,6 +51,21 @@ describe('schema', () => {
     }
   });
 
+  it('balances the parentheses of every formula (Sheets rejects the column otherwise)', () => {
+    for (const tab of DATA_TABS) {
+      for (const c of tab.columns.filter((x) => x.formula)) {
+        let depth = 0;
+        let quoted = false;
+        for (const ch of c.formula!) {
+          if (ch === '"') quoted = !quoted;
+          else if (!quoted) depth += ch === '(' ? 1 : ch === ')' ? -1 : 0;
+          expect(depth, `${tab.name}.${c.key}`).toBeGreaterThanOrEqual(0);
+        }
+        expect(depth, `${tab.name}.${c.key}`).toBe(0);
+      }
+    }
+  });
+
   it('keeps settings seed rows the same width as their tables', () => {
     for (const t of SETTINGS_TABLES) {
       for (const row of t.seed) expect(row, t.key).toHaveLength(t.columns.length);

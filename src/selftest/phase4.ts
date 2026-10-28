@@ -179,7 +179,7 @@ export const PHASE4_CASES: TestCase[] = [
       t.lap('read');
       eq(
         [d.client.medicareId, d.client.medicarePlan, d.policy?.carrier],
-        ['2345678987', 'Advantage', 'Devoted Health'],
+        ['2345678987', 'MAPD', 'Devoted Health'],
         'Medicare',
       );
       eq(d.leadId, 'LD-0001', 'open lead with the same phone');

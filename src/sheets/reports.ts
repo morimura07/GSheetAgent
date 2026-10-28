@@ -78,6 +78,21 @@ function persistency(n: number, criteria: string[] = []): string {
   return `IF(${eligible}=0,"",${kept}/${eligible})`;
 }
 
+/**
+ * Commission paid as earned in the month starting at `cell`: for each policy, the
+ * month's commission when that policy month was paid and is not covered by the advance.
+ * Policy month 0 is the persistency start's month; its rate depends on the policy year.
+ */
+function asEarned(cell: string): string {
+  const start = P('persistencyStart');
+  const idx = `((YEAR(${cell})-YEAR(${start}))*12+MONTH(${cell})-MONTH(${start}))`;
+  const rate = `IF(${idx}<12,${P('commissionRate')},IF(${idx}<60,${P('rate2to5')},IF(${idx}<120,${P('rate6to10')},${P('rate11on')})))`;
+  return `SUMPRODUCT(IFERROR((${idx}>=${P('advanceMonths')})*(${idx}<${P('monthsPaid')})*${P('monthlyPremium')}*${rate},0))`;
+}
+
+/** Column letter of the 0-based column `i` (A-Z). */
+const col = (i: number) => String.fromCharCode(65 + i);
+
 /** One row per non-blank entry of `list`: the entry, then each column for it (spills). */
 function perItem(list: string, columns: ((x: string) => string)[]): string {
   const maps = columns.map((col) => `MAP(items,LAMBDA(x,${col('x')}))`).join(',');
@@ -92,7 +107,7 @@ export function setupReportInputs(
   nameRange: (name: string, range: Range) => void,
 ): void {
   const sheet = ensureSheet(ss, DASHBOARD);
-  ensureSize(sheet, 60, 14);
+  ensureSize(sheet, 60, DASHBOARD_COLS);
   writeInputs(sheet);
   nameRange('rep_year', sheet.getRange('C3'));
   nameRange('rep_asOf', sheet.getRange('C4'));
@@ -157,6 +172,14 @@ function protect(sheet: Sheet, editable: Range[] = []): void {
 
 // ---- Dashboard -----------------------------------------------------------------
 
+/** Commission money in a period: also the last columns of the month table. */
+const COMMISSION_ROWS = [
+  'Commission advances',
+  'Commission as earned',
+  'Chargebacks',
+  'Net commission',
+];
+
 /** Labels of the Dashboard's year figures, in order (the self-test reads them by label). */
 export const DASHBOARD_ROWS = [
   'Applications written',
@@ -172,6 +195,8 @@ export const DASHBOARD_ROWS = [
   'Miles driven',
   'Mileage deduction',
   'Expenses',
+  ...COMMISSION_ROWS,
+  'Advance not yet earned',
 ];
 
 /** Columns of the Dashboard's month table. */
@@ -188,14 +213,16 @@ export const MONTH_COLUMNS = [
   'Miles',
   'Mileage deduction',
   'Expenses',
+  ...COMMISSION_ROWS,
 ];
 
-const MONTH_TABLE_ROW = 26;
+const MONTH_TABLE_ROW = 30;
+const DASHBOARD_COLS = 18;
 
 function buildDashboard(sheet: Sheet): void {
   const inputs = sheet.getRange(`${YEAR_INPUT}:${ASOF_INPUT}`).getValues();
   sheet.getRange(1, 1, sheet.getMaxRows(), sheet.getMaxColumns()).clearContent();
-  reset(sheet, 60, 14);
+  reset(sheet, 60, DASHBOARD_COLS);
   sheet.getRange(`${YEAR_INPUT}:${ASOF_INPUT}`).setValues(inputs);
   writeInputs(sheet);
   styleInputs(sheet);
@@ -223,6 +250,12 @@ function buildDashboard(sheet: Sheet): void {
     [`=SUMIFS(${r('[[Mileage.miles]]')},${inYear(r('[[Mileage.date]]'))})`, '#,##0.0'],
     [`=SUMIFS(${r('[[Mileage.deduction]]')},${inYear(r('[[Mileage.date]]'))})`, MONEY],
     [`=SUMIFS(${r('[[Expenses.amount]]')},${inYear(r('[[Expenses.date]]'))})`, MONEY],
+    // The month table's totals (columns after the first 12).
+    ...COMMISSION_ROWS.map((_, i): [string, string] => [
+      `=${col(MONTH_COLUMNS.length - COMMISSION_ROWS.length + i)}${MONTH_TABLE_ROW + 13}`,
+      MONEY,
+    ]),
+    [`=SUM(${P('unearnedAdvance')})`, MONEY],
   ];
   const top = 6;
   heading(put(sheet, `A${top}`, [['="Year "&rep_year', '']]));
@@ -235,14 +268,16 @@ function buildDashboard(sheet: Sheet): void {
   note(
     sheet,
     `A${top + DASHBOARD_ROWS.length + 1}`,
-    'Annual premium = monthly premium x 12. Persistency: share of issued policies still in force N months after they started (death claims left out).',
+    'Annual premium = monthly premium x 12. Persistency: share of issued policies still in force N months after they started (death claims left out). Commission: advances when a policy starts, as earned for each month paid after the advance months, chargebacks on the date a policy ends.',
   );
 
   // Month table for the report year.
   const head = MONTH_TABLE_ROW;
   heading(put(sheet, `A${head}`, [MONTH_COLUMNS]));
   const rows = Array.from({ length: 12 }, (_, i) => {
-    const m = `$A${head + 1 + i}`;
+    const row = head + 1 + i;
+    const m = `$A${row}`;
+    const money = MONTH_COLUMNS.length - COMMISSION_ROWS.length;
     return [
       `=DATE(rep_year,${i + 1},1)`,
       `=COUNTIFS(${inMonth(P('applicationDate'), m)})`,
@@ -256,9 +291,12 @@ function buildDashboard(sheet: Sheet): void {
       `=SUMIFS(${r('[[Mileage.miles]]')},${inMonth(r('[[Mileage.date]]'), m)})`,
       `=SUMIFS(${r('[[Mileage.deduction]]')},${inMonth(r('[[Mileage.date]]'), m)})`,
       `=SUMIFS(${r('[[Expenses.amount]]')},${inMonth(r('[[Expenses.date]]'), m)})`,
+      `=SUMIFS(${P('advance')},${inMonth(P('persistencyStart'), m)})`,
+      `=${asEarned(m)}`,
+      `=SUMIFS(${P('chargeback')},${inMonth(P('statusDate'), m)})`,
+      `=${col(money)}${row}+${col(money + 1)}${row}-${col(money + 2)}${row}`,
     ];
   });
-  const col = (i: number) => String.fromCharCode(65 + i);
   const total = MONTH_COLUMNS.map((_, i) =>
     i === 0
       ? 'Total'
@@ -279,6 +317,7 @@ function buildDashboard(sheet: Sheet): void {
     '#,##0.0',
     MONEY,
     MONEY,
+    ...COMMISSION_ROWS.map(() => MONEY),
   ];
   put(sheet, `A${head + 1}`, [...rows, total], formats);
   sheet.getRange(head + 13, 1, 1, MONTH_COLUMNS.length).setFontWeight('bold');
@@ -351,6 +390,10 @@ export const CARRIER_COLUMNS = [
   ...PERSISTENCY_MONTHS.map((n) => `Persistency ${n} mo`),
   'Monthly premium in force',
   'Average monthly premium',
+  'Advances',
+  'Commission earned',
+  'Chargebacks',
+  'Advance not yet earned',
 ];
 
 /** The carrier/product columns for COUNTIFS criteria `c` (none = all policies). */
@@ -366,6 +409,9 @@ function policyStats(c: string[]): string[] {
     ...PERSISTENCY_MONTHS.map((n) => persistency(n, c)),
     inForcePremium,
     `IF(${inForceCount}=0,"",(${inForcePremium})/(${inForceCount}))`,
+    ...['advance', 'commissionEarned', 'chargeback', 'unearnedAdvance'].map(
+      (key) => `SUMIFS(${P(key)},${P('policyId')},"<>"${and(c)})`,
+    ),
   ];
 }
 
@@ -379,11 +425,15 @@ const STAT_FORMATS = [
   ...PERSISTENCY_MONTHS.map(() => PCT),
   MONEY,
   MONEY,
+  MONEY,
+  MONEY,
+  MONEY,
+  MONEY,
 ];
 
 function buildCarriers(sheet: Sheet): void {
   sheet.clear();
-  reset(sheet, 60, 20);
+  reset(sheet, 60, CARRIER_COLUMNS.length + 9);
   title(sheet, 'A1', 'Carriers');
   put(sheet, 'A2', [['="As of "&TEXT(rep_asOf,"m/d/yyyy")&" · Dashboard > As of"']]);
 
@@ -433,7 +483,7 @@ function buildCarriers(sheet: Sheet): void {
   note(
     sheet,
     'A3',
-    'Persistency N mo: of the issued policies that started at least N months ago, the share still in force N months after they started. Death claims are left out.',
+    'Persistency N mo: of the issued policies that started at least N months ago, the share still in force N months after they started. Death claims are left out. Commission: as of the report date.',
   );
   sheet.setColumnWidth(1, 200);
   sheet.setColumnWidths(2, CARRIER_COLUMNS.length - 1, 95);

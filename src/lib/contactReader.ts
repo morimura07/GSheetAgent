@@ -118,6 +118,14 @@ const FACE_PREMIUM = /\b(\d+(?:\.\d+)?)\s*k\s*(?:for|@|at)\s*\$?(\d+(?:\.\d{1,2}
 const DRAFT_DAY = /\b(1st|2nd|3rd|4th)\s+(wed(?:nesday)?)\b/i;
 const DRAFT_DATE = /\bdraft(?:s|\s+day)?\s*:?\s*(\d{1,2})(?:st|nd|rd|th)?\b/i;
 const EXISTING = /\b(has|had)\b.*\d\s*k\b/i;
+/** Medicare words in notes -> the word in the client's Medicare list ("Advantage" = MAPD). */
+const MEDICARE_WORDS: [RegExp, string][] = [
+  [/\bmapd\b|\badvantage\b/i, 'mapd'],
+  [/\bmao\b/i, 'mao'],
+  [/\bc-?snp\b/i, 'c-snp'],
+  [/\bd-?snp\b/i, 'd-snp'],
+  [/\bpart d\b|\bpdp\b/i, 'part d'],
+];
 const REFERRED = /\b\w*erred by\s*:?\s*(.+)$/i;
 const MEDICARE_ID = /\b(?:MID|MBI|medicare(?:\s*id)?)\s*[:#]?\s*([A-Z0-9-]{8,13})\b/i;
 const POLICY_NUMBER = /\b([A-Z]{1,5}-?\d{5,12})\b/;
@@ -586,9 +594,7 @@ class Facts {
       [/\b(gi|guaranteed)\b/i, 'guaranteed'],
       [/\bwhole life\b/i, 'whole life'],
       [/\bterm\b/i, 'term'],
-      [/\badvantage\b|\bmapd?\b/i, 'advantage'],
-      [/\bsupplement\b|\bsupp\b|\bmedigap\b/i, 'supplement'],
-      [/\bpart d\b|\bpdp\b/i, 'part d'],
+      ...MEDICARE_WORDS,
     ];
     for (const [re, word] of words) {
       if (re.test(line)) return this.listValue('ProductTypes', word);
@@ -597,11 +603,9 @@ class Facts {
   }
 
   private medicarePlan(line: string): string {
-    if (/\badvantage\b|\bmapd?\b/i.test(line))
-      return this.listValue('MedicarePlanTypes', 'advantage');
-    if (/\bsupplement\b|\bmedigap\b/i.test(line))
-      return this.listValue('MedicarePlanTypes', 'supplement');
-    if (/\bpart d\b|\bpdp\b/i.test(line)) return this.listValue('MedicarePlanTypes', 'part d');
+    for (const [re, word] of MEDICARE_WORDS) {
+      if (re.test(line)) return this.listValue('MedicarePlanTypes', word);
+    }
     return '';
   }
 

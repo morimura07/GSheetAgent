@@ -234,7 +234,7 @@ export function appSaveExpense(input: unknown, receipt: ReceiptUpload | null): A
  */
 export function selfTest(): void {
   if (__RELEASE__) throw new Error('The self-test is for the DEV workbook only');
-  const reports = (['phase7'] as Suite[]).map(runSelfTest);
+  const reports = (['phase5'] as Suite[]).map(runSelfTest);
   const results = reports.flatMap((r) => r.results);
   const failures = results
     .filter((r) => !r.ok)
@@ -264,6 +264,10 @@ export function runSelfTestPhase3Json(): string {
 
 export function runSelfTestPhase4Json(): string {
   return JSON.stringify(runSelfTest('phase4'));
+}
+
+export function runSelfTestPhase5Json(): string {
+  return JSON.stringify(runSelfTest('phase5'));
 }
 
 export function runSelfTestPhase6Json(): string {

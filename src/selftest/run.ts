@@ -6,6 +6,7 @@ import { PHASE1_CASES } from './phase1';
 import { PHASE2_CASES } from './phase2';
 import { PHASE3_CASES } from './phase3';
 import { PHASE4_CASES } from './phase4';
+import { PHASE5_CASES } from './phase5';
 import { PHASE6_CASES } from './phase6';
 import { PHASE7_CASES } from './phase7';
 
@@ -20,6 +21,7 @@ const SUITES = {
   phase2: PHASE2_CASES,
   phase3: PHASE3_CASES,
   phase4: PHASE4_CASES,
+  phase5: PHASE5_CASES,
   phase6: PHASE6_CASES,
   phase7: PHASE7_CASES,
 };
