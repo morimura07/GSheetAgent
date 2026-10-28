@@ -111,6 +111,7 @@ The client never gives the developer access. Instead:
 - **Template:** made by `npm run template` in the developer's account. Spreadsheet
   `1jJ0o1_0xdwXYY5MMFi88TGNWjBMmylTHJgWdLJZI3yY`, settings in `release/.clasp.json`.
 - **Not tested yet:** the copy → set up → deploy flow by hand. Do a dry run with the
-  template in a second Google account before the client's call.
-- **Client account:** rcarrizosa.csb@gmail.com (received 2026-10-22). Share the template
-  with it as Viewer, then send `docs/client-message-2026-10-22-template-link.md`.
+  template in a second Google account before sending it.
+- **Handover (no call):** share the template with rcarrizosa.csb@gmail.com as Viewer, then
+  send `docs/Agent Tracker - Setup Guide.pdf` (made from
+  [client-setup-guide.md](client-setup-guide.md)) with a short message.
