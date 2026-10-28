@@ -25,6 +25,8 @@ export const CARRIERS: Carrier[] = [
   // From the client's commission listing (2026-10-28).
   { name: 'Aetna / CVS', aliases: ['Aetna', 'CVS'], lines: ['life'] },
   { name: 'Americo', aliases: ['Americo'], lines: ['life'] },
+  // From the client's rates (2026-10-29).
+  { name: 'Generational Life', aliases: ['Generational'], lines: ['life'] },
 ];
 
 /**
@@ -152,6 +154,8 @@ export interface Plan {
   advanceMonths: number;
   /** The advance is only paid when the premium comes by bank draft (CICA). */
   bankDraftOnly: boolean;
+  /** Most the advance can be, in dollars (Generational Life: $1,000); undefined = no limit. */
+  advanceLimit?: number;
   /** False while something about the plan is still to be confirmed by the client. */
   confirmed: boolean;
 }
@@ -178,6 +182,16 @@ export const PLANS: Plan[] = [
   { name: 'RNA SIWL', carrier: 'Royal Neighbors of America', advanceMonths: 0, bankDraftOnly: false, confirmed: true },
   { name: 'RNA Graded', carrier: 'Royal Neighbors of America', advanceMonths: 0, bankDraftOnly: false, confirmed: true },
   { name: 'RNA Guaranteed issue', carrier: 'Royal Neighbors of America', advanceMonths: 0, bankDraftOnly: false, confirmed: true },
+  // From the client's rates (2026-10-29).
+  { name: 'TA Final expense', carrier: 'Transamerica', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
+  { name: 'TA Graded', carrier: 'Transamerica', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
+  { name: 'TA XpIUL', carrier: 'Transamerica', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
+  // Advance not given yet: treated as paid as earned.
+  { name: 'GTL Heritage', carrier: 'Guarantee Trust Life', advanceMonths: 0, bankDraftOnly: false, confirmed: false },
+  { name: 'GL Preferred', carrier: 'Generational Life', advanceMonths: 3, bankDraftOnly: false, advanceLimit: 1000, confirmed: true },
+  { name: 'GL Standard', carrier: 'Generational Life', advanceMonths: 3, bankDraftOnly: false, advanceLimit: 1000, confirmed: true },
+  { name: 'GL Sub-Standard', carrier: 'Generational Life', advanceMonths: 3, bankDraftOnly: false, advanceLimit: 1000, confirmed: true },
+  { name: 'GL Graded', carrier: 'Generational Life', advanceMonths: 3, bankDraftOnly: false, advanceLimit: 1000, confirmed: true },
 ];
 
 /** Percent of premium by policy year, for issue ages fromAge-toAge (null = any age). */
@@ -234,4 +248,16 @@ export const COMMISSION_RATES: CommissionRate[] = [
   rate('RNA Graded', [81, 85], 0.475, 0.0225, 0.013),
   rate('RNA Guaranteed issue', [50, 75], 0.23, 0.029, 0.009),
   rate('RNA Guaranteed issue', [76, 80], 0.185, 0.029, 0.009),
+  rate('TA Final expense', null, 1.15, 0),
+  rate('TA Graded', null, 0.78, 0),
+  rate('TA XpIUL', null, 1, 0),
+  rate('GTL Heritage', null, 0.45, 0.03, 0.01),
+  rate('GL Preferred', [0, 75], 1.1, 0.02, 0.005, 0.005),
+  rate('GL Preferred', [76, 80], 0.8, 0.02, 0.005, 0.005),
+  rate('GL Standard', [0, 75], 0.95, 0.02, 0.005, 0.005),
+  rate('GL Standard', [76, 80], 0.65, 0.02, 0.005, 0.005),
+  rate('GL Sub-Standard', [0, 75], 0.88, 0.02, 0.005, 0.005),
+  rate('GL Sub-Standard', [76, 80], 0.58, 0.02, 0.005, 0.005),
+  rate('GL Graded', [0, 75], 0.55, 0.02, 0.005, 0.005),
+  rate('GL Graded', [76, 80], 0.25, 0.02, 0.005, 0.005),
 ];

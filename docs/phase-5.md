@@ -10,7 +10,8 @@ Two new tables. They are seeded from `src/config/lists.ts` (rates in
 [commission-rates.md](commission-rates.md)) and the client edits them afterwards.
 
 - **Plans:** plan name, carrier, advance months (0 = paid as earned), "Advance only with
-  bank draft" (CICA), and Confirmed. Unchecked Confirmed marks a plan with an open question.
+  bank draft" (CICA), Confirmed, and "Advance limit $" (Generational Life: $1,000; blank =
+  no limit). Unchecked Confirmed marks a plan with an open question.
 - **Commission rates:** plan, from age, to age (blank = any age), and the percent of premium
   for year 1, years 2-5, years 6-10 and years 11+. Rates can be over 100%.
 
@@ -28,10 +29,10 @@ A new carrier or plan means a new row in each table; nothing in the code changes
 | Advance months                 | calculated          | from the plan; 0 for CICA unless paid by bank draft                                 |
 | Months paid (if different)     | typed               | a correction when the estimate is wrong                                             |
 | Months paid                    | calculated          | months of premium paid up to the report date (rules below)                          |
-| Advance                        | calculated          | monthly premium x year-1 rate x advance months                                      |
+| Advance                        | calculated          | monthly premium x year-1 rate x advance months, up to the plan's advance limit      |
 | Commission earned              | calculated          | year-1 rate on months 1-12 paid, then the renewal rates                             |
-| Advance not yet earned         | calculated          | advance months not paid yet, while the policy is in force: owed if it lapsed now    |
-| Chargeback                     | calculated          | lapsed, cancelled or death claim: the advance months not paid (paid 2 of 9: 7 back) |
+| Advance not yet earned         | calculated          | advance less year-1 commission earned so far, while in force: owed if it lapsed now |
+| Chargeback                     | calculated          | lapsed, cancelled or death claim: the same amount (paid 2 of 9 months: 7 back)      |
 
 **Messages in "Commission year 1"** (shown in red):
 
@@ -64,8 +65,8 @@ says otherwise.
   - Advance not yet earned (as of the report date).
 - **Dashboard, month table:** the same four amounts per month.
   - An advance counts in the month the policy starts.
-  - As-earned commission counts in each paid month after the advance months, renewals
-    included.
+  - As-earned commission counts in each paid month once the advance is paid back out of
+    the commission earned, renewals included.
   - A chargeback counts in the month of its Status date.
 - **Carriers:** Advances, Commission earned, Chargebacks and Advance not yet earned per
   carrier, as of the report date.
@@ -74,7 +75,7 @@ says otherwise.
 
 - **Medicare:** no commission rates yet. Medicare policies show no commission until plans
   are added for them.
-- **Transamerica, Combined:** no rates yet.
+- **Combined:** no rates yet.
 - **Aetna's extra 18% on super preferred** (paid only if the client also places an Aetna
   Medicare Supplement): not calculated; add it by hand if it applies.
 - **American Amicable return-of-premium death in year 1:** the carrier charges back all
@@ -103,9 +104,13 @@ says otherwise.
   - a birthday without a year, and a plan from the wrong carrier.
 
   The test also checks the Dashboard year and month figures, the Carriers columns, a
-  hand-corrected months paid, and that no cell shows a formula error.
+  hand-corrected months paid, and that no cell shows a formula error. A last case adds three
+  Generational Life policies for the $1,000 advance limit (paid back, lapsed, still owed).
+
+**Added 2026-10-29:** Transamerica, GTL Heritage and Generational Life rates; the advance
+limit.
 
 ## Status
 
-**Built 2026-10-28.** Waiting on the client for: Transamerica and Combined rates, Medicare
+**Built 2026-10-28.** Waiting on the client for: Combined rates, Medicare
 commissions, and the open questions in [commission-rates.md](commission-rates.md).

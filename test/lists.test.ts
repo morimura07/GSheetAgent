@@ -58,14 +58,24 @@ describe('commission plans and rates', () => {
     for (const r of COMMISSION_RATES) expect(PLANS.map((p) => p.name)).toContain(r.plan);
   });
 
-  it("matches the client's listing: 9-month advance carriers, CICA 6 months on bank draft", () => {
+  it("matches the client's listing: advance months, CICA bank draft, Generational limit", () => {
     const advance = (carrier: string) => [
       ...new Set(PLANS.filter((p) => p.carrier === carrier).map((p) => p.advanceMonths)),
     ];
     expect(
-      ['American Amicable', 'Americo', 'Mutual of Omaha', 'Corebridge Financial'].map(advance),
-    ).toEqual([[9], [9], [9], [9]]);
+      [
+        'American Amicable',
+        'Americo',
+        'Mutual of Omaha',
+        'Corebridge Financial',
+        'Transamerica',
+        'Generational Life',
+      ].map(advance),
+    ).toEqual([[9], [9], [9], [9], [9], [3]]);
     expect(['Aetna / CVS', 'Royal Neighbors of America'].map(advance)).toEqual([[0], [0]]);
+    expect(
+      PLANS.filter((p) => p.advanceLimit !== undefined).map((p) => [p.carrier, p.advanceLimit]),
+    ).toEqual(Array(4).fill(['Generational Life', 1000]));
     expect(PLANS.filter((p) => p.bankDraftOnly).map((p) => p.carrier)).toEqual([
       'Citizens Life (CICA)',
       'Citizens Life (CICA)',
@@ -122,5 +132,17 @@ describe('commission plans and rates', () => {
       years6to10: 0.025,
     });
     expect(find('MoO Level', 82)).toBeUndefined();
+    expect(find('TA Final expense', 70)).toMatchObject({ year1: 1.15, years2to5: 0, years11on: 0 });
+    expect(find('GTL Heritage', 70)).toMatchObject({
+      year1: 0.45,
+      years2to5: 0.03,
+      years6to10: 0.01,
+    });
+    expect(find('GL Sub-Standard', 78)).toMatchObject({
+      year1: 0.58,
+      years2to5: 0.02,
+      years6to10: 0.005,
+      years11on: 0.005,
+    });
   });
 });
