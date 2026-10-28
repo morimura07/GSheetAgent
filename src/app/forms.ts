@@ -46,6 +46,7 @@ export const CLIENT_FORM: FieldSpec[] = [
 export const POLICY_FORM: FieldSpec[] = [
   { key: 'carrier', label: 'Carrier', kind: 'list', list: 'Carriers', required: true },
   { key: 'productType', label: 'Product type', kind: 'list', list: 'ProductTypes' },
+  { key: 'plan', label: 'Plan (for commission)', kind: 'list', list: 'Plans' },
   { key: 'policyNumber', label: 'Policy #', kind: 'text' },
   { key: 'faceAmount', label: 'Face amount', kind: 'money' },
   { key: 'premium', label: 'Premium', kind: 'money' },
@@ -59,6 +60,7 @@ export const POLICY_FORM: FieldSpec[] = [
   { key: 'applicationDate', label: 'Application date', kind: 'date', today: true, notFuture: true },
   { key: 'issueDate', label: 'Issue date', kind: 'date' },
   { key: 'draftDay', label: 'Draft day', kind: 'text' },
+  { key: 'paidBy', label: 'Premium paid by', kind: 'list', list: 'PremiumPaidBy' },
   { key: 'status', label: 'Status', kind: 'list', list: 'PolicyStatuses', default: 'Pending' },
 ];
 

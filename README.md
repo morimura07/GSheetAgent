@@ -5,8 +5,9 @@ mileage, expenses, hours, carrier persistency, monthly premium and commissions,
 with a phone entry app and a contact-screenshot reader.
 
 - Requirements: [Google Doc](https://docs.google.com/document/d/1QYdmrM9DVSbyW4LJ0lSkIT8WF49XnaJEioh3SjNy4e0/edit)
-- Phase plan and status: [docs/phase-0.md](docs/phase-0.md), [docs/phase-1.md](docs/phase-1.md), [docs/phase-2.md](docs/phase-2.md), [docs/phase-3.md](docs/phase-3.md), [docs/phase-4.md](docs/phase-4.md), [docs/phase-6.md](docs/phase-6.md), [docs/phase-7.md](docs/phase-7.md)
+- Phase plan and status: [docs/phase-0.md](docs/phase-0.md), [docs/phase-1.md](docs/phase-1.md), [docs/phase-2.md](docs/phase-2.md), [docs/phase-3.md](docs/phase-3.md), [docs/phase-4.md](docs/phase-4.md), [docs/phase-5.md](docs/phase-5.md), [docs/phase-6.md](docs/phase-6.md), [docs/phase-7.md](docs/phase-7.md)
 - Client setup guide (handover): [docs/client-setup-guide.md](docs/client-setup-guide.md)
+- Commission rates from the client: [docs/commission-rates.md](docs/commission-rates.md)
 
 ## Layout
 
@@ -37,7 +38,7 @@ npm run preview:app # screenshot the phone screens with fake data into .preview/
 npm run open       # open the Apps Script editor
 ```
 
-`test:remote` runs each suite (`runSelfTestPhase1Json`, `runSelfTestPhase2Json`, `runSelfTestPhase3Json`, `runSelfTestPhase4Json`, `runSelfTestPhase6Json`, `runSelfTestPhase7Json`) as its own
+`test:remote` runs each suite (`runSelfTestPhase1Json`, `runSelfTestPhase2Json`, `runSelfTestPhase3Json`, `runSelfTestPhase4Json`, `runSelfTestPhase5Json`, `runSelfTestPhase6Json`, `runSelfTestPhase7Json`) as its own
 `clasp run` against a separate SELF-TEST spreadsheet that is wiped on every run;
 `node scripts/remote-test.mjs phase2` runs one suite. It needs the script linked to the GCP project and a login made with
 `npx clasp login --creds .secrets/client_secret.json --use-project-scopes --include-clasp-scopes`.

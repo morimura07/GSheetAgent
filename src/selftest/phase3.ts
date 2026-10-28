@@ -145,7 +145,30 @@ export const PHASE3_CASES: TestCase[] = [
       const value = (label: string) => round(rowOf(ss, DASHBOARD, label)[1]);
       eq(
         DASHBOARD_ROWS.map(value),
-        [5, 4800, 4, 270, 1, 0.5, '', '', 4, 66, 33, 15.5, round(4800 / 15.5), 150, 110.5, 131],
+        // No plans in this data: commissions are tested in Phase 5.
+        [
+          5,
+          4800,
+          4,
+          270,
+          1,
+          0.5,
+          '',
+          '',
+          4,
+          66,
+          33,
+          15.5,
+          round(4800 / 15.5),
+          150,
+          110.5,
+          131,
+          0,
+          0,
+          0,
+          0,
+          0,
+        ],
         DASHBOARD_ROWS.join(' | '),
       );
     },
@@ -161,7 +184,7 @@ export const PHASE3_CASES: TestCase[] = [
           return m instanceof Date && m.toLocaleString('en-US', { month: 'short' }) === label;
         });
         if (!row) throw new Error(`no month ${label}`);
-        return roundAll(row.slice(1));
+        return roundAll(row.slice(1, 12));
       };
       eq(month('Jan'), [2, 150, 2, 160, 0, 1, 10, 0, 0, 0, 66], 'Jan');
       eq(month('Feb'), [0, 0, 0, 210, 0, 1, 10, 0, 0, 0, 0], 'Feb (lapsed in May: still in force)');
@@ -174,7 +197,7 @@ export const PHASE3_CASES: TestCase[] = [
       eq(month('Aug'), [0, 0, 0, 270, 0, 0, 0, 8, 50, 38, 0], 'Aug');
       eq(month('Sep'), [1, 80, 0, 270, 0, 1, 23, 7.5, 0, 0, 0], 'Sep');
       eq(
-        roundAll(rowOf(ss, DASHBOARD, 'Total').slice(1)),
+        roundAll(rowOf(ss, DASHBOARD, 'Total').slice(1, 12)),
         [5, 400, 4, '', 50, 4, 66, 15.5, 150, 110.5, 131],
         'totals',
       );

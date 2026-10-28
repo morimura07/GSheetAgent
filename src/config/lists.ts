@@ -22,6 +22,9 @@ export const CARRIERS: Carrier[] = [
   { name: 'Corebridge Financial', aliases: ['Corebridge', 'AIG'], lines: ['life'] },
   { name: 'Foresters Financial', aliases: ['Foresters'], lines: ['life'] },
   { name: 'Devoted Health', aliases: ['Devoted'], lines: ['medicare'] },
+  // From the client's commission listing (2026-10-28).
+  { name: 'Aetna / CVS', aliases: ['Aetna', 'CVS'], lines: ['life'] },
+  { name: 'Americo', aliases: ['Americo'], lines: ['life'] },
 ];
 
 /**
@@ -43,19 +46,20 @@ export const POLICY_STATUSES: { name: string; group: StatusGroup }[] = [
   { name: 'Not taken', group: 'not_issued' },
 ];
 
-// PROPOSED: the client has not listed product types yet.
+/** Medicare products the client sells (2026-10-28). */
+export const MEDICARE_TYPES = ['Part A', 'Part B', 'Part D', 'MAPD', 'MAO', 'C-SNP', 'D-SNP'];
+
+// Life list confirmed 2026-10-22.
 export const PRODUCT_TYPES = [
   'Final expense - Level',
   'Final expense - Graded',
   'Final expense - Guaranteed issue',
   'Whole life',
   'Term',
-  'Medicare Advantage',
-  'Medicare Supplement',
-  'Medicare Part D',
+  ...MEDICARE_TYPES.map((t) => `Medicare - ${t}`),
 ];
 
-export const MEDICARE_PLAN_TYPES = ['None', 'Advantage', 'Supplement', 'Part D'];
+export const MEDICARE_PLAN_TYPES = ['None', ...MEDICARE_TYPES];
 
 /** Payments per year; premiums are normalised to monthly for reporting. */
 export const PAYMENT_MODES: { name: string; perYear: number }[] = [
@@ -91,6 +95,9 @@ export const EXPENSE_CATEGORIES = ['Gas', 'Leads', 'Food', 'Misc'];
 
 // PROPOSED: not asked yet.
 export const PAYMENT_METHODS = ['Debit card', 'Credit card', 'Cash', 'Bank transfer'];
+
+/** How the premium is paid: CICA only advances on bank draft. No account details. */
+export const PREMIUM_PAID_BY = ['Bank draft', 'Card', 'Direct bill'];
 
 // Optional activity tag on hours (client, 2026-10-22).
 export const HOURS_ACTIVITIES = ['Dialing', 'Field', 'Admin', 'Other'];
@@ -132,4 +139,99 @@ export const IRS_MILEAGE_RATES: MileageRate[] = [
   { from: '2026-01-01', dollarsPerMile: 0.725, verified: true },
   // Reported mid-year change (IRB 2026-29); not yet confirmed on IRS.gov.
   { from: '2026-07-01', dollarsPerMile: 0.76, verified: false },
+];
+
+// ---- Commissions (client's listing and carrier schedules, 2026-10-28) -----------
+// See docs/commission-rates.md. These seed Settings; the client edits them there.
+
+export interface Plan {
+  /** Shown in the Policies "Plan" dropdown. */
+  name: string;
+  carrier: string;
+  /** Months of year-1 commission paid up front when the policy starts; 0 = as earned. */
+  advanceMonths: number;
+  /** The advance is only paid when the premium comes by bank draft (CICA). */
+  bankDraftOnly: boolean;
+  /** False while something about the plan is still to be confirmed by the client. */
+  confirmed: boolean;
+}
+
+// prettier-ignore
+export const PLANS: Plan[] = [
+  { name: 'Aetna FE Level', carrier: 'Aetna / CVS', advanceMonths: 0, bankDraftOnly: false, confirmed: true },
+  { name: 'Aetna FE Modified', carrier: 'Aetna / CVS', advanceMonths: 0, bankDraftOnly: false, confirmed: true },
+  { name: 'AmAm Level', carrier: 'American Amicable', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
+  { name: 'AmAm ROP / Graded', carrier: 'American Amicable', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
+  { name: 'Americo Eagle Select 1', carrier: 'Americo', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
+  { name: 'Americo Eagle Select 2', carrier: 'Americo', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
+  { name: 'Americo Eagle Select 3', carrier: 'Americo', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
+  { name: 'CICA Level', carrier: 'Citizens Life (CICA)', advanceMonths: 6, bankDraftOnly: true, confirmed: true },
+  // Renewal rate not given yet.
+  { name: 'CICA Guaranteed issue', carrier: 'Citizens Life (CICA)', advanceMonths: 6, bankDraftOnly: true, confirmed: false },
+  { name: 'Corebridge SIWL', carrier: 'Corebridge Financial', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
+  // The client's summary advances Corebridge level only; their rates say GIWL and graded too.
+  { name: 'Corebridge GIWL', carrier: 'Corebridge Financial', advanceMonths: 9, bankDraftOnly: false, confirmed: false },
+  { name: 'Corebridge Graded', carrier: 'Corebridge Financial', advanceMonths: 9, bankDraftOnly: false, confirmed: false },
+  // Rates given for ages 45-80 only; graded renewals not given yet.
+  { name: 'MoO Level', carrier: 'Mutual of Omaha', advanceMonths: 9, bankDraftOnly: false, confirmed: false },
+  { name: 'MoO Graded', carrier: 'Mutual of Omaha', advanceMonths: 9, bankDraftOnly: false, confirmed: false },
+  { name: 'RNA SIWL', carrier: 'Royal Neighbors of America', advanceMonths: 0, bankDraftOnly: false, confirmed: true },
+  { name: 'RNA Graded', carrier: 'Royal Neighbors of America', advanceMonths: 0, bankDraftOnly: false, confirmed: true },
+  { name: 'RNA Guaranteed issue', carrier: 'Royal Neighbors of America', advanceMonths: 0, bankDraftOnly: false, confirmed: true },
+];
+
+/** Percent of premium by policy year, for issue ages fromAge-toAge (null = any age). */
+export interface CommissionRate {
+  plan: string;
+  fromAge: number | null;
+  toAge: number | null;
+  year1: number;
+  years2to5: number | null;
+  years6to10: number | null;
+  years11on: number | null;
+}
+
+/** Renewals default to: years 6-10 as years 2-5, nothing from year 11. */
+function rate(
+  plan: string,
+  ages: [number, number] | null,
+  year1: number,
+  years2to5: number | null = null,
+  years6to10: number | null = years2to5,
+  years11on: number | null = years2to5 === null ? null : 0,
+): CommissionRate {
+  const [fromAge, toAge] = ages ?? [null, null];
+  return { plan, fromAge, toAge, year1, years2to5, years6to10, years11on };
+}
+
+export const COMMISSION_RATES: CommissionRate[] = [
+  rate('Aetna FE Level', [40, 89], 1.075, 0.065, 0.05, 0.02),
+  rate('Aetna FE Modified', [40, 75], 0.975, 0.065, 0.05, 0.02),
+  rate('AmAm Level', [0, 79], 1.1, 0.065),
+  rate('AmAm Level', [80, 85], 0.75, 0.045),
+  rate('AmAm ROP / Graded', [0, 79], 0.95, 0.0475),
+  rate('AmAm ROP / Graded', [80, 85], 0.75, 0.045),
+  rate('Americo Eagle Select 1', [40, 59], 0.95, 0.01),
+  rate('Americo Eagle Select 1', [60, 80], 1.05, 0.01),
+  rate('Americo Eagle Select 1', [81, 85], 0.95, 0.01),
+  rate('Americo Eagle Select 2', [40, 59], 0.95, 0),
+  rate('Americo Eagle Select 2', [60, 80], 1.05, 0),
+  rate('Americo Eagle Select 2', [81, 85], 0.95, 0),
+  rate('Americo Eagle Select 3', [40, 59], 0.5, 0),
+  rate('Americo Eagle Select 3', [60, 75], 0.6, 0),
+  rate('CICA Level', null, 1, 0.01),
+  rate('CICA Guaranteed issue', null, 0.55),
+  rate('Corebridge SIWL', null, 0.97, 0.04, 0.0175),
+  rate('Corebridge GIWL', null, 0.55, 0),
+  rate('Corebridge Graded', null, 0.57, 0),
+  rate('MoO Level', [45, 80], 1.1, 0.045, 0.025),
+  rate('MoO Graded', [45, 80], 0.775),
+  rate('RNA SIWL', [50, 75], 1.05, 0.0425, 0.0225),
+  rate('RNA SIWL', [76, 80], 0.9, 0.0425, 0.0225),
+  rate('RNA SIWL', [81, 85], 0.7, 0.0225, 0.013),
+  rate('RNA Graded', [50, 75], 0.675, 0.0425, 0.0225),
+  rate('RNA Graded', [76, 80], 0.575, 0.0425, 0.0225),
+  rate('RNA Graded', [81, 85], 0.475, 0.0225, 0.013),
+  rate('RNA Guaranteed issue', [50, 75], 0.23, 0.029, 0.009),
+  rate('RNA Guaranteed issue', [76, 80], 0.185, 0.029, 0.009),
 ];

@@ -64,7 +64,7 @@ export function loadTestData(ss: Spreadsheet): { ok: boolean; message: string } 
       county: 'Oklahoma',
       birthday: d('1950-07-04'),
       smoker: 'Non-smoker',
-      medicarePlan: 'Advantage',
+      medicarePlan: 'MAPD',
       medicareId: 'TEST-MBI-0000',
       notes: 'FAKE TEST RECORD',
     },
@@ -100,7 +100,7 @@ export function loadTestData(ss: Spreadsheet): { ok: boolean; message: string } 
     {
       clientId: charlie,
       carrier: 'Devoted Health',
-      productType: 'Medicare Advantage',
+      productType: 'Medicare - MAPD',
       policyNumber: 'TEST-0003',
       premium: 0,
       paymentMode: 'Monthly',

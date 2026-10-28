@@ -9,6 +9,7 @@
 import {
   BENEFICIARY_TYPES,
   CARRIERS,
+  COMMISSION_RATES,
   EXPENSE_CATEGORIES,
   HOURS_ACTIVITIES,
   IRS_MILEAGE_RATES,
@@ -18,7 +19,9 @@ import {
   PERSISTENCY_START,
   PAYMENT_METHODS,
   PAYMENT_MODES,
+  PLANS,
   POLICY_STATUSES,
+  PREMIUM_PAID_BY,
   PRODUCT_TYPES,
   SMOKER_OPTIONS,
   STATES,
@@ -50,8 +53,8 @@ export interface Column {
   formula?: string;
   /** Number format for `formula` columns (other types get one from their type). */
   format?: string;
-  /** Formula columns: red when the value is not 100% / is below zero. */
-  warn?: 'notOne' | 'negative';
+  /** Formula columns: red when the value is not 100% / is below zero / is above zero. */
+  warn?: 'notOne' | 'negative' | 'positive';
   /** Hidden from the assistant view (Phase 7). */
   sensitive?: boolean;
   width?: number;
@@ -84,6 +87,42 @@ const ISSUED_GROUPS = '"^(active|at_risk|inactive)$"';
 export function months(from: string, to: string): string {
   return `((YEAR(${to})-YEAR(${from}))*12+MONTH(${to})-MONTH(${from})-(DAY(${to})<DAY(${from})))`;
 }
+
+// Commissions (Phase 5). A policy's rates come from Settings > Commission rates: the
+// row of its plan whose age band holds the client's age at issue (blank ages = any age).
+
+/** Status groups that end a policy: the unearned advance is charged back. */
+const ENDED_GROUPS = '"^(inactive|claim)$"';
+const ended = `REGEXMATCH([[statusGroup]]&"",${ENDED_GROUPS})`;
+
+/** `column` of the policy's commission-rate row, per row; `missing` when there is none. */
+function rateLookup(column: string, missing: string): string {
+  const band = (bound: string, op: string) =>
+    `((set_CommissionRates_${bound}="")+ISNUMBER(a)*(a${op}set_CommissionRates_${bound}))`;
+  const row = `FILTER(set_CommissionRates_${column},set_CommissionRates_plan=p,${band('fromAge', '>=')}*${band('toAge', '<=')})`;
+  return `IFERROR(INDEX(${row},1),${missing})`;
+}
+
+/** Year-1 rate, or a message: unknown plan, plan of another carrier, no age or no band. */
+const YEAR1_RATE = `MAP([[plan]],[[carrier]],[[ageAtIssue]],LAMBDA(p,c,a,IF(p="",,LET(pc,IFERROR(VLOOKUP(p,{set_Plans_plan,set_Plans_carrier},2,FALSE),"#"),r,${rateLookup('year1', '"#"')},IF(pc="#","Unknown plan",IF((pc<>"")*(c<>"")*(pc<>c),"Check carrier: plan is "&pc,IF(r<>"#",r,IF(ISNUMBER(a),"? No rate at age "&a,"Check age"))))))))`;
+
+const renewalRate = (column: string) =>
+  `MAP([[plan]],[[ageAtIssue]],LAMBDA(p,a,IF(p="",,${rateLookup(column, '""')})))`;
+
+/** Months paid that fall in policy months from-to (to = null: no end), per row. */
+function monthsIn(from: number, to: number | null): string {
+  const p = '[[monthsPaid]]';
+  const upper = to === null ? p : `IF(${p}>${to},${to},${p})`;
+  return `IF(${p}<=${from},0,${upper}-${from})`;
+}
+const rateOr0 = (key: string) => `IF(ISNUMBER([[${key}]]),[[${key}]],0)`;
+
+/** Shown only when the policy has months paid and a year-1 rate. */
+const commissionIf = (expr: string) =>
+  `ARRAYFORMULA(IF(([[monthsPaid]]="")+NOT(ISNUMBER([[commissionRate]])),,${expr}))`;
+
+/** Advance months not covered by payments, times the monthly year-1 commission. */
+const UNEARNED = `IF([[advanceMonths]]>[[monthsPaid]],ROUND([[monthlyPremium]]*[[commissionRate]]*([[advanceMonths]]-[[monthsPaid]]),2),)`;
 
 export const DATA_TABS: DataTab[] = [
   {
@@ -225,6 +264,131 @@ export const DATA_TABS: DataTab[] = [
         format: '0',
         note: 'Whole months from persistency start until it lapsed or was cancelled (Status date), or to the report date',
         formula: `ARRAYFORMULA(IF([[monthsSinceStart]]="",,${months('[[persistencyStart]]', `IF(([[statusGroup]]="inactive")*([[statusDate]]<>"")*([[statusDate]]<rep_asOf),[[statusDate]],rep_asOf)`)}))`,
+      },
+      // Commissions (Phase 5).
+      {
+        key: 'plan',
+        header: 'Plan',
+        type: 'list',
+        list: 'Plans',
+        width: 180,
+        note: 'The carrier plan the commission rates come from (Settings > Plans)',
+      },
+      {
+        key: 'paidBy',
+        header: 'Premium paid by',
+        type: 'list',
+        list: 'PremiumPaidBy',
+        note: 'Some carriers (CICA) only pay an advance when the premium comes by bank draft',
+      },
+      {
+        key: 'ageAtIssue',
+        header: 'Age at issue',
+        type: 'formula',
+        format: '0',
+        width: 90,
+        note: "Client's age on the effective date, else the issue date, else the application date",
+        formula:
+          'ARRAYFORMULA(IF([[clientId]]="",,LET(b,IFERROR(VLOOKUP([[clientId]],{[[Clients.clientId]],[[Clients.birthday]]},2,FALSE),""),dt,IF([[effectiveDate]]<>"",[[effectiveDate]],IF([[issueDate]]<>"",[[issueDate]],[[applicationDate]])),IF((b="")+(dt=""),"",IFERROR(IF(DATEDIF(b,dt,"Y")<18,"Check year",DATEDIF(b,dt,"Y")),"Check year")))))',
+      },
+      {
+        key: 'commissionRate',
+        header: 'Commission year 1',
+        type: 'formula',
+        format: '0.0#%',
+        width: 130,
+        sensitive: true,
+        note: 'Settings > Commission rates for the plan and age at issue. A message here means no rate was found.',
+        formula: YEAR1_RATE,
+      },
+      {
+        key: 'rate2to5',
+        header: 'Renewal years 2-5',
+        type: 'formula',
+        format: '0.0#%',
+        sensitive: true,
+        formula: renewalRate('years2to5'),
+      },
+      {
+        key: 'rate6to10',
+        header: 'Renewal years 6-10',
+        type: 'formula',
+        format: '0.0#%',
+        sensitive: true,
+        formula: renewalRate('years6to10'),
+      },
+      {
+        key: 'rate11on',
+        header: 'Renewal years 11+',
+        type: 'formula',
+        format: '0.0#%',
+        sensitive: true,
+        formula: renewalRate('years11on'),
+      },
+      {
+        key: 'advanceMonths',
+        header: 'Advance months',
+        type: 'formula',
+        format: '0',
+        width: 90,
+        note: 'Months of year-1 commission paid up front (Settings > Plans); 0 = paid as earned',
+        formula:
+          'ARRAYFORMULA(IF([[plan]]="",,IFERROR(VLOOKUP([[plan]],{set_Plans_plan,set_Plans_advanceMonths},2,FALSE)*IF(VLOOKUP([[plan]],{set_Plans_plan,set_Plans_bankDraftOnly},2,FALSE)=TRUE,[[paidBy]]="Bank draft",1),0)))',
+      },
+      {
+        key: 'monthsPaidOverride',
+        header: 'Months paid (if different)',
+        type: 'number',
+        width: 110,
+        note: 'Type the months the client really paid when the estimate next to it is wrong',
+      },
+      {
+        key: 'monthsPaid',
+        header: 'Months paid',
+        type: 'formula',
+        format: '0',
+        width: 90,
+        note: 'Months of premium paid up to the report date (Dashboard > As of), counted from the persistency start. A lapsed or cancelled policy counts up to its Status date, without the draft that failed.',
+        formula: `ARRAYFORMULA(IF(([[persistencyStart]]="")+NOT(REGEXMATCH([[statusGroup]]&"","^(active|at_risk|inactive|claim)$")),,IF([[monthsPaidOverride]]<>"",[[monthsPaidOverride]],LET(k,12/IFERROR(VLOOKUP([[paymentMode]],{set_PaymentModes_mode,set_PaymentModes_perYear},2,FALSE),12),m,${months('[[persistencyStart]]', `IF(${ended}*([[statusDate]]<>"")*([[statusDate]]<rep_asOf),[[statusDate]],rep_asOf)`)},IF(m<0,0,(FLOOR(m/k)+([[statusGroup]]="active"))*k)))))`,
+      },
+      {
+        key: 'advance',
+        header: 'Advance',
+        type: 'formula',
+        format: '$#,##0.00',
+        sensitive: true,
+        note: 'Monthly premium x year-1 rate x advance months, paid when the policy starts',
+        formula: commissionIf('ROUND([[monthlyPremium]]*[[commissionRate]]*[[advanceMonths]],2)'),
+      },
+      {
+        key: 'commissionEarned',
+        header: 'Commission earned',
+        type: 'formula',
+        format: '$#,##0.00',
+        sensitive: true,
+        note: 'Earned on the months paid: year-1 rate on months 1-12, then the renewal rates',
+        formula: commissionIf(
+          `ROUND([[monthlyPremium]]*([[commissionRate]]*IF([[monthsPaid]]>12,12,[[monthsPaid]])+${rateOr0('rate2to5')}*${monthsIn(12, 60)}+${rateOr0('rate6to10')}*${monthsIn(60, 120)}+${rateOr0('rate11on')}*${monthsIn(120, null)}),2)`,
+        ),
+      },
+      {
+        key: 'unearnedAdvance',
+        header: 'Advance not yet earned',
+        type: 'formula',
+        format: '$#,##0.00',
+        sensitive: true,
+        note: 'Part of the advance the client has not paid for yet: owed back if the policy lapses now',
+        formula: commissionIf(`IF(${ended},,${UNEARNED})`),
+      },
+      {
+        key: 'chargeback',
+        header: 'Chargeback',
+        type: 'formula',
+        format: '$#,##0.00',
+        sensitive: true,
+        warn: 'positive',
+        note: 'Lapsed, cancelled or death claim: the advance months the client did not pay (paid 2 of 9: 7 months back)',
+        formula: commissionIf(`IF(${ended},${UNEARNED},)`),
       },
       {
         key: 'assistantNotes',
@@ -426,6 +590,9 @@ export interface SettingsTable {
   seed: unknown[][];
 }
 
+/** Commission rates can be over 100% (a percent column would cap them at 100%). */
+const PERCENT = '0.0#%';
+
 export const SETTINGS_TABLES: SettingsTable[] = [
   {
     key: 'Carriers',
@@ -476,6 +643,36 @@ export const SETTINGS_TABLES: SettingsTable[] = [
     ],
     seed: IRS_MILEAGE_RATES.map((r) => [r.from, r.dollarsPerMile, r.verified]),
   },
+  {
+    key: 'Plans',
+    title: 'Plans',
+    columns: [
+      { key: 'plan', header: 'Plan', type: 'text' },
+      { key: 'carrier', header: 'Carrier', type: 'text' },
+      { key: 'advanceMonths', header: 'Advance months (0 = as earned)', type: 'number' },
+      { key: 'bankDraftOnly', header: 'Advance only with bank draft', type: 'checkbox' },
+      { key: 'confirmed', header: 'Confirmed', type: 'checkbox' },
+    ],
+    seed: PLANS.map((p) => [p.name, p.carrier, p.advanceMonths, p.bankDraftOnly, p.confirmed]),
+  },
+  {
+    key: 'CommissionRates',
+    title: 'Commission rates',
+    columns: [
+      { key: 'plan', header: 'Plan', type: 'text' },
+      { key: 'fromAge', header: 'From age (blank = any)', type: 'number' },
+      { key: 'toAge', header: 'To age (blank = any)', type: 'number' },
+      { key: 'year1', header: 'Year 1', type: 'number', format: PERCENT },
+      { key: 'years2to5', header: 'Years 2-5', type: 'number', format: PERCENT },
+      { key: 'years6to10', header: 'Years 6-10', type: 'number', format: PERCENT },
+      { key: 'years11on', header: 'Years 11+', type: 'number', format: PERCENT },
+    ],
+    seed: COMMISSION_RATES.map((r) =>
+      [r.plan, r.fromAge, r.toAge, r.year1, r.years2to5, r.years6to10, r.years11on].map(
+        (v) => v ?? '',
+      ),
+    ),
+  },
 ];
 
 // ---- Lists tab: plain dropdown lists, one per column -----------------------
@@ -491,6 +688,7 @@ export const SIMPLE_LISTS = {
   HoursActivities: { header: 'Hours activities', seed: HOURS_ACTIVITIES },
   States: { header: 'States', seed: STATES },
   Counties: { header: 'Counties', seed: OK_COUNTIES },
+  PremiumPaidBy: { header: 'Premium paid by', seed: PREMIUM_PAID_BY },
 } as const;
 
 /** Dropdowns sourced from a Settings table column instead of the Lists tab. */
@@ -498,6 +696,7 @@ export const SETTINGS_LISTS = {
   Carriers: { table: 'Carriers', column: 'name' },
   PolicyStatuses: { table: 'PolicyStatuses', column: 'status' },
   PaymentModes: { table: 'PaymentModes', column: 'mode' },
+  Plans: { table: 'Plans', column: 'plan' },
 } as const;
 
 export type ListName = keyof typeof SIMPLE_LISTS | keyof typeof SETTINGS_LISTS;

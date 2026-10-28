@@ -245,6 +245,7 @@ function warningRules(
     if (c.warn) {
       const rule = SpreadsheetApp.newConditionalFormatRule();
       if (c.warn === 'notOne') rule.whenNumberNotEqualTo(1);
+      else if (c.warn === 'positive') rule.whenNumberGreaterThan(0);
       else rule.whenNumberLessThan(0);
       rules.push(rule.setBackground('#fce8e6').setFontColor('#c5221f').setRanges([body]).build());
     }

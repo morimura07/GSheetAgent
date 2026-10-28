@@ -88,12 +88,12 @@ describe('contact screenshot reader (client test contacts)', () => {
       lastName: 'Client 2',
       phone: '(405) 234-5678',
       medicareId: '2345678987',
-      medicarePlan: 'Advantage',
+      medicarePlan: 'MAPD',
       notes: 'Met 10/10/2026',
     });
     expect(r.policy).toEqual({
       carrier: 'Devoted Health',
-      productType: 'Medicare Advantage',
+      productType: 'Medicare - MAPD',
       applicationDate: '2026-10-10',
       status: 'Pending',
     });
