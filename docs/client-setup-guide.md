@@ -74,10 +74,12 @@ screenshots, New lead, Add expense, plus Hours and Mileage.
 Open the **Settings** tab in the spreadsheet. Everything there can be changed by you at any
 time. Check these:
 
-- **Lead costs:** the price of each lead type. Update the mail-in lead price.
+- **Lead costs:** the price of each lead type (Yes $10, Survey $23, Mail-in $40).
 - **Commission rates:** your rate for each plan, by age. Add or change rows when a carrier
   changes your rates.
 - **Plans:** each plan and how many months of advance it pays (0 = paid as earned).
+  **Medicare** is set to $36 a month per policy: when your Medicare contract comes, change
+  the amount in the "Flat $ a month" column.
 - **Carriers:** add a carrier when you start with a new one.
 
 ## 8. Using it day to day
