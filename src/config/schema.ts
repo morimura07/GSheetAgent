@@ -122,7 +122,7 @@ const commissionIf = (expr: string) =>
   `ARRAYFORMULA(IF(([[monthsPaid]]="")+NOT(ISNUMBER([[commissionRate]])),,${expr}))`;
 
 /** The advance less the year-1 commission earned on the months paid, when positive. */
-const UNEARNED = `IF(ROUND([[advance]]-[[monthlyPremium]]*[[commissionRate]]*[[monthsPaid]],2)>0,ROUND([[advance]]-[[monthlyPremium]]*[[commissionRate]]*[[monthsPaid]],2),)`;
+const UNEARNED = `IF(ROUND([[advance]]-[[commissionBase]]*[[commissionRate]]*[[monthsPaid]],2)>0,ROUND([[advance]]-[[commissionBase]]*[[commissionRate]]*[[monthsPaid]],2),)`;
 
 export const DATA_TABS: DataTab[] = [
   {
@@ -336,6 +336,17 @@ export const DATA_TABS: DataTab[] = [
           'ARRAYFORMULA(IF([[plan]]="",,IFERROR(VLOOKUP([[plan]],{set_Plans_plan,set_Plans_advanceMonths},2,FALSE)*IF(VLOOKUP([[plan]],{set_Plans_plan,set_Plans_bankDraftOnly},2,FALSE)=TRUE,[[paidBy]]="Bank draft",1),0)))',
       },
       {
+        key: 'commissionBase',
+        header: 'Commission paid on / month',
+        type: 'formula',
+        format: '$#,##0.00',
+        width: 100,
+        sensitive: true,
+        note: 'Monthly premium, or the flat amount a month of the plan (Settings > Plans, e.g. Medicare)',
+        formula:
+          'ARRAYFORMULA(IF([[plan]]="",,IFERROR(1/(1/VLOOKUP([[plan]],{set_Plans_plan,set_Plans_flatMonthly},2,FALSE)),[[monthlyPremium]])))',
+      },
+      {
         key: 'monthsPaidOverride',
         header: 'Months paid (if different)',
         type: 'number',
@@ -359,7 +370,7 @@ export const DATA_TABS: DataTab[] = [
         sensitive: true,
         note: 'Monthly premium x year-1 rate x advance months, up to the plan advance limit, paid when the policy starts',
         formula: commissionIf(
-          'ROUND(LET(a,[[monthlyPremium]]*[[commissionRate]]*[[advanceMonths]],l,IFERROR(1/(1/VLOOKUP([[plan]],{set_Plans_plan,set_Plans_advanceLimit},2,FALSE)),9E+99),IF(a>l,l,a)),2)',
+          'ROUND(LET(a,[[commissionBase]]*[[commissionRate]]*[[advanceMonths]],l,IFERROR(1/(1/VLOOKUP([[plan]],{set_Plans_plan,set_Plans_advanceLimit},2,FALSE)),9E+99),IF(a>l,l,a)),2)',
         ),
       },
       {
@@ -370,7 +381,7 @@ export const DATA_TABS: DataTab[] = [
         sensitive: true,
         note: 'Earned on the months paid: year-1 rate on months 1-12, then the renewal rates',
         formula: commissionIf(
-          `ROUND([[monthlyPremium]]*([[commissionRate]]*IF([[monthsPaid]]>12,12,[[monthsPaid]])+${rateOr0('rate2to5')}*${monthsIn(12, 60)}+${rateOr0('rate6to10')}*${monthsIn(60, 120)}+${rateOr0('rate11on')}*${monthsIn(120, null)}),2)`,
+          `ROUND([[commissionBase]]*([[commissionRate]]*IF([[monthsPaid]]>12,12,[[monthsPaid]])+${rateOr0('rate2to5')}*${monthsIn(12, 60)}+${rateOr0('rate6to10')}*${monthsIn(60, 120)}+${rateOr0('rate11on')}*${monthsIn(120, null)}),2)`,
         ),
       },
       {
@@ -655,6 +666,7 @@ export const SETTINGS_TABLES: SettingsTable[] = [
       { key: 'bankDraftOnly', header: 'Advance only with bank draft', type: 'checkbox' },
       { key: 'confirmed', header: 'Confirmed', type: 'checkbox' },
       { key: 'advanceLimit', header: 'Advance limit $ (blank = none)', type: 'number' },
+      { key: 'flatMonthly', header: 'Flat $ a month instead of premium', type: 'number' },
     ],
     seed: PLANS.map((p) => [
       p.name,
@@ -663,6 +675,7 @@ export const SETTINGS_TABLES: SettingsTable[] = [
       p.bankDraftOnly,
       p.confirmed,
       p.advanceLimit ?? '',
+      p.flatMonthly ?? '',
     ]),
   },
   {

@@ -88,9 +88,9 @@ function asEarned(cell: string): string {
   const idx = `((YEAR(${cell})-YEAR(${start}))*12+MONTH(${cell})-MONTH(${start}))`;
   // Year 1: the year-1 commission earned over `months` months, beyond the advance.
   const beyondAdvance = (months: string) =>
-    `IF(ROUND(${P('monthlyPremium')}*${P('commissionRate')}*${months}-${P('advance')},2)>0,${P('monthlyPremium')}*${P('commissionRate')}*${months}-${P('advance')},0)`;
+    `IF(ROUND(${P('commissionBase')}*${P('commissionRate')}*${months}-${P('advance')},2)>0,${P('commissionBase')}*${P('commissionRate')}*${months}-${P('advance')},0)`;
   const year1 = `${beyondAdvance(`(${idx}+1)`)}-${beyondAdvance(idx)}`;
-  const renewal = `${P('monthlyPremium')}*IF(${idx}<60,${P('rate2to5')},IF(${idx}<120,${P('rate6to10')},${P('rate11on')}))`;
+  const renewal = `${P('commissionBase')}*IF(${idx}<60,${P('rate2to5')},IF(${idx}<120,${P('rate6to10')},${P('rate11on')}))`;
   return `SUMPRODUCT(IFERROR((${idx}>=0)*(${idx}<${P('monthsPaid')})*IF(${idx}<12,${year1},${renewal}),0))`;
 }
 

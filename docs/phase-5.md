@@ -10,8 +10,9 @@ Two new tables. They are seeded from `src/config/lists.ts` (rates in
 [commission-rates.md](commission-rates.md)) and the client edits them afterwards.
 
 - **Plans:** plan name, carrier, advance months (0 = paid as earned), "Advance only with
-  bank draft" (CICA), Confirmed, and "Advance limit $" (Generational Life: $1,000; blank =
-  no limit). Unchecked Confirmed marks a plan with an open question.
+  bank draft" (CICA), Confirmed, "Advance limit $" (Generational Life: $1,000; blank =
+  no limit) and "Flat $ a month instead of premium" (Medicare: about $36). Unchecked
+  Confirmed marks a plan with an open question.
 - **Commission rates:** plan, from age, to age (blank = any age), and the percent of premium
   for year 1, years 2-5, years 6-10 and years 11+. Rates can be over 100%.
 
@@ -27,6 +28,7 @@ A new carrier or plan means a new row in each table; nothing in the code changes
 | Commission year 1              | calculated          | the plan's rate for that age, or a message (below)                                  |
 | Renewal years 2-5 / 6-10 / 11+ | calculated          | the plan's renewal rates for that age                                               |
 | Advance months                 | calculated          | from the plan; 0 for CICA unless paid by bank draft                                 |
+| Commission paid on / month     | calculated          | the monthly premium, or the plan's flat amount a month (Medicare)                   |
 | Months paid (if different)     | typed               | a correction when the estimate is wrong                                             |
 | Months paid                    | calculated          | months of premium paid up to the report date (rules below)                          |
 | Advance                        | calculated          | monthly premium x year-1 rate x advance months, up to the plan's advance limit      |
@@ -73,8 +75,8 @@ says otherwise.
 
 ## Not covered
 
-- **Medicare:** no commission rates yet. Medicare policies show no commission until plans
-  are added for them.
+- **Medicare:** one "Medicare" plan, any carrier, about $36 a month, until the client's
+  contract gives the real amount.
 - **Combined:** no rates yet.
 - **Aetna's extra 18% on super preferred** (paid only if the client also places an Aetna
   Medicare Supplement): not calculated; add it by hand if it applies.
@@ -108,9 +110,11 @@ says otherwise.
   Generational Life policies for the $1,000 advance limit (paid back, lapsed, still owed).
 
 **Added 2026-10-29:** Transamerica, GTL Heritage and Generational Life rates; the advance
-limit.
+limit. Then: Mutual of Omaha Living Promise, Child life, IUL and Term Life Express; all
+Corebridge advances; CICA GI without renewals; mail-in leads $40; Medicare as a flat amount a
+month (a last test case: no premium, 3 months x $36).
 
 ## Status
 
-**Built 2026-10-28.** Waiting on the client for: Combined rates, Medicare
+**Built 2026-10-28.** Waiting on the client for: Combined rates, the Medicare contract
 commissions, and the open questions in [commission-rates.md](commission-rates.md).

@@ -49,7 +49,7 @@ describe('commission plans and rates', () => {
   it('gives every plan a known carrier and at least one rate row', () => {
     expect(unique(PLANS.map((p) => p.name))).toBe(true);
     for (const p of PLANS) {
-      expect(carriers, p.name).toContain(p.carrier);
+      if (p.carrier) expect(carriers, p.name).toContain(p.carrier);
       expect(
         COMMISSION_RATES.some((r) => r.plan === p.name),
         p.name,
@@ -99,7 +99,8 @@ describe('commission plans and rates', () => {
   });
 
   it('keeps rates between 0% and 120%, renewals below year 1', () => {
-    for (const r of COMMISSION_RATES) {
+    const flat = PLANS.filter((p) => p.flatMonthly !== undefined).map((p) => p.name);
+    for (const r of COMMISSION_RATES.filter((r) => !flat.includes(r.plan))) {
       expect(r.year1).toBeGreaterThan(0);
       expect(r.year1).toBeLessThanOrEqual(1.2);
       for (const renewal of [r.years2to5, r.years6to10, r.years11on]) {
@@ -126,12 +127,16 @@ describe('commission plans and rates', () => {
       years2to5: 0.0225,
       years6to10: 0.013,
     });
-    expect(find('MoO Level', 50)).toMatchObject({
+    expect(find('MoO Living Promise Level', 50)).toMatchObject({
       year1: 1.1,
       years2to5: 0.045,
       years6to10: 0.025,
     });
-    expect(find('MoO Level', 82)).toBeUndefined();
+    expect(find('MoO Living Promise Level', 82)).toMatchObject({ year1: 0.7, years11on: 0 });
+    expect(find('MoO Living Promise Level', 86)).toBeUndefined();
+    expect(find('MoO Term Life Express 15/20/30', 40)).toMatchObject({ year1: 1.1, years2to5: 0 });
+    expect(find('Medicare', 70)).toMatchObject({ year1: 1, years11on: 1 });
+    expect(PLANS.find((p) => p.name === 'Medicare')).toMatchObject({ flatMonthly: 36 });
     expect(find('TA Final expense', 70)).toMatchObject({ year1: 1.15, years2to5: 0, years11on: 0 });
     expect(find('GTL Heritage', 70)).toMatchObject({
       year1: 0.45,
