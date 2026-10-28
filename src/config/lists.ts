@@ -25,6 +25,8 @@ export const CARRIERS: Carrier[] = [
   // From the client's commission listing (2026-10-28).
   { name: 'Aetna / CVS', aliases: ['Aetna', 'CVS'], lines: ['life'] },
   { name: 'Americo', aliases: ['Americo'], lines: ['life'] },
+  // From the client's rates (2026-10-29).
+  { name: 'Generational Life', aliases: ['Generational'], lines: ['life'] },
 ];
 
 /**
@@ -85,8 +87,8 @@ export interface LeadType {
 export const LEAD_TYPES: LeadType[] = [
   { name: 'Yes lead', costPerLead: 10, from: '2026-01-01', confirmed: true },
   { name: 'Survey lead', costPerLead: 23, from: '2026-01-01', confirmed: true },
-  // Client (2026-10-22): "I believe the cost is 48", to confirm.
-  { name: 'Mail-in lead', costPerLead: 48, from: '2026-01-01', confirmed: false },
+  // Client (2026-10-29): mail-in leads are $40.
+  { name: 'Mail-in lead', costPerLead: 40, from: '2026-01-01', confirmed: true },
   // PROPOSED: referrals appear in contact notes ("wants policy for sister").
   { name: 'Referral', costPerLead: 0, from: '2026-01-01', confirmed: false },
 ];
@@ -147,11 +149,16 @@ export const IRS_MILEAGE_RATES: MileageRate[] = [
 export interface Plan {
   /** Shown in the Policies "Plan" dropdown. */
   name: string;
+  /** '' = any carrier. */
   carrier: string;
   /** Months of year-1 commission paid up front when the policy starts; 0 = as earned. */
   advanceMonths: number;
   /** The advance is only paid when the premium comes by bank draft (CICA). */
   bankDraftOnly: boolean;
+  /** Most the advance can be, in dollars (Generational Life: $1,000); undefined = no limit. */
+  advanceLimit?: number;
+  /** Paid this many dollars a month instead of a percent of the premium (Medicare). */
+  flatMonthly?: number;
   /** False while something about the plan is still to be confirmed by the client. */
   confirmed: boolean;
 }
@@ -166,18 +173,33 @@ export const PLANS: Plan[] = [
   { name: 'Americo Eagle Select 2', carrier: 'Americo', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
   { name: 'Americo Eagle Select 3', carrier: 'Americo', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
   { name: 'CICA Level', carrier: 'Citizens Life (CICA)', advanceMonths: 6, bankDraftOnly: true, confirmed: true },
-  // Renewal rate not given yet.
-  { name: 'CICA Guaranteed issue', carrier: 'Citizens Life (CICA)', advanceMonths: 6, bankDraftOnly: true, confirmed: false },
+  { name: 'CICA Guaranteed issue', carrier: 'Citizens Life (CICA)', advanceMonths: 6, bankDraftOnly: true, confirmed: true },
   { name: 'Corebridge SIWL', carrier: 'Corebridge Financial', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
-  // The client's summary advances Corebridge level only; their rates say GIWL and graded too.
-  { name: 'Corebridge GIWL', carrier: 'Corebridge Financial', advanceMonths: 9, bankDraftOnly: false, confirmed: false },
-  { name: 'Corebridge Graded', carrier: 'Corebridge Financial', advanceMonths: 9, bankDraftOnly: false, confirmed: false },
-  // Rates given for ages 45-80 only; graded renewals not given yet.
-  { name: 'MoO Level', carrier: 'Mutual of Omaha', advanceMonths: 9, bankDraftOnly: false, confirmed: false },
-  { name: 'MoO Graded', carrier: 'Mutual of Omaha', advanceMonths: 9, bankDraftOnly: false, confirmed: false },
+  // Client (2026-10-29): "Corebridge everything advances".
+  { name: 'Corebridge GIWL', carrier: 'Corebridge Financial', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
+  { name: 'Corebridge Graded', carrier: 'Corebridge Financial', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
+  { name: 'MoO Living Promise Level', carrier: 'Mutual of Omaha', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
+  { name: 'MoO Living Promise Graded', carrier: 'Mutual of Omaha', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
+  { name: 'MoO Child life', carrier: 'Mutual of Omaha', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
+  // 90% "up to target premium", then 1.5%: the tracker has no target premium, so 90% on all.
+  { name: 'MoO IUL', carrier: 'Mutual of Omaha', advanceMonths: 9, bankDraftOnly: false, confirmed: false },
+  { name: 'MoO Term Life Express 10', carrier: 'Mutual of Omaha', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
+  { name: 'MoO Term Life Express 15/20/30', carrier: 'Mutual of Omaha', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
   { name: 'RNA SIWL', carrier: 'Royal Neighbors of America', advanceMonths: 0, bankDraftOnly: false, confirmed: true },
   { name: 'RNA Graded', carrier: 'Royal Neighbors of America', advanceMonths: 0, bankDraftOnly: false, confirmed: true },
   { name: 'RNA Guaranteed issue', carrier: 'Royal Neighbors of America', advanceMonths: 0, bankDraftOnly: false, confirmed: true },
+  // From the client's rates (2026-10-29).
+  { name: 'TA Final expense', carrier: 'Transamerica', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
+  { name: 'TA Graded', carrier: 'Transamerica', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
+  { name: 'TA XpIUL', carrier: 'Transamerica', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
+  // Advance not given yet: treated as paid as earned.
+  { name: 'GTL Heritage', carrier: 'Guarantee Trust Life', advanceMonths: 0, bankDraftOnly: false, confirmed: false },
+  { name: 'GL Preferred', carrier: 'Generational Life', advanceMonths: 3, bankDraftOnly: false, advanceLimit: 1000, confirmed: true },
+  { name: 'GL Standard', carrier: 'Generational Life', advanceMonths: 3, bankDraftOnly: false, advanceLimit: 1000, confirmed: true },
+  { name: 'GL Sub-Standard', carrier: 'Generational Life', advanceMonths: 3, bankDraftOnly: false, advanceLimit: 1000, confirmed: true },
+  { name: 'GL Graded', carrier: 'Generational Life', advanceMonths: 3, bankDraftOnly: false, advanceLimit: 1000, confirmed: true },
+  // Client (2026-10-29): "about $36 a month" per policy; contract in the coming weeks.
+  { name: 'Medicare', carrier: '', advanceMonths: 0, bankDraftOnly: false, flatMonthly: 36, confirmed: false },
 ];
 
 /** Percent of premium by policy year, for issue ages fromAge-toAge (null = any age). */
@@ -220,12 +242,17 @@ export const COMMISSION_RATES: CommissionRate[] = [
   rate('Americo Eagle Select 3', [40, 59], 0.5, 0),
   rate('Americo Eagle Select 3', [60, 75], 0.6, 0),
   rate('CICA Level', null, 1, 0.01),
-  rate('CICA Guaranteed issue', null, 0.55),
+  rate('CICA Guaranteed issue', null, 0.55, 0),
   rate('Corebridge SIWL', null, 0.97, 0.04, 0.0175),
   rate('Corebridge GIWL', null, 0.55, 0),
   rate('Corebridge Graded', null, 0.57, 0),
-  rate('MoO Level', [45, 80], 1.1, 0.045, 0.025),
-  rate('MoO Graded', [45, 80], 0.775),
+  rate('MoO Living Promise Level', [45, 80], 1.1, 0.045, 0.025),
+  rate('MoO Living Promise Level', [81, 85], 0.7, 0.045, 0.025),
+  rate('MoO Living Promise Graded', [45, 80], 0.775, 0),
+  rate('MoO Child life', null, 0.85, 0),
+  rate('MoO IUL', null, 0.9, 0),
+  rate('MoO Term Life Express 10', null, 0.9, 0),
+  rate('MoO Term Life Express 15/20/30', null, 1.1, 0),
   rate('RNA SIWL', [50, 75], 1.05, 0.0425, 0.0225),
   rate('RNA SIWL', [76, 80], 0.9, 0.0425, 0.0225),
   rate('RNA SIWL', [81, 85], 0.7, 0.0225, 0.013),
@@ -234,4 +261,18 @@ export const COMMISSION_RATES: CommissionRate[] = [
   rate('RNA Graded', [81, 85], 0.475, 0.0225, 0.013),
   rate('RNA Guaranteed issue', [50, 75], 0.23, 0.029, 0.009),
   rate('RNA Guaranteed issue', [76, 80], 0.185, 0.029, 0.009),
+  rate('TA Final expense', null, 1.15, 0),
+  rate('TA Graded', null, 0.78, 0),
+  rate('TA XpIUL', null, 1, 0),
+  rate('GTL Heritage', null, 0.45, 0.03, 0.01),
+  rate('GL Preferred', [0, 75], 1.1, 0.02, 0.005, 0.005),
+  rate('GL Preferred', [76, 80], 0.8, 0.02, 0.005, 0.005),
+  rate('GL Standard', [0, 75], 0.95, 0.02, 0.005, 0.005),
+  rate('GL Standard', [76, 80], 0.65, 0.02, 0.005, 0.005),
+  rate('GL Sub-Standard', [0, 75], 0.88, 0.02, 0.005, 0.005),
+  rate('GL Sub-Standard', [76, 80], 0.58, 0.02, 0.005, 0.005),
+  rate('GL Graded', [0, 75], 0.55, 0.02, 0.005, 0.005),
+  rate('GL Graded', [76, 80], 0.25, 0.02, 0.005, 0.005),
+  // A flat-amount plan: 100% of the flat amount every month.
+  rate('Medicare', null, 1, 1, 1, 1),
 ];

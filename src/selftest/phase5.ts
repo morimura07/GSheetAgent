@@ -64,11 +64,11 @@ function loadData(ss: Spreadsheet): void {
     // P5: CICA by bank draft: 6-month advance; second draft failed.
     { clientId: C3, carrier: 'Citizens Life (CICA)', plan: 'CICA Level', paidBy: 'Bank draft', premium: 30, ...monthly, effectiveDate: d('2026-08-10'), firstDraftDate: d('2026-08-10'), status: 'Insufficient funds' },
     // P6: birthday without a year: no age, no commission.
-    { clientId: C4, carrier: 'Mutual of Omaha', plan: 'MoO Level', premium: 80, ...monthly, effectiveDate: d('2026-09-01'), firstDraftDate: d('2026-09-01'), status: 'Paid as issued' },
+    { clientId: C4, carrier: 'Mutual of Omaha', plan: 'MoO Living Promise Level', premium: 80, ...monthly, effectiveDate: d('2026-09-01'), firstDraftDate: d('2026-09-01'), status: 'Paid as issued' },
     // P7: plan of another carrier.
     { clientId: C5, carrier: 'Mutual of Omaha', plan: 'AmAm Level', premium: 45, ...monthly, effectiveDate: d('2026-04-01'), firstDraftDate: d('2026-04-01'), status: 'Paid as issued' },
     // P8: in its third year: year 1 and renewals.
-    { clientId: C5, carrier: 'Mutual of Omaha', plan: 'MoO Level', premium: 50, ...monthly, effectiveDate: d('2024-07-01'), firstDraftDate: d('2024-07-01'), status: 'Paid as issued' },
+    { clientId: C5, carrier: 'Mutual of Omaha', plan: 'MoO Living Promise Level', premium: 50, ...monthly, effectiveDate: d('2024-07-01'), firstDraftDate: d('2024-07-01'), status: 'Paid as issued' },
     // P9: death claim after 4 payments.
     { clientId: C5, carrier: AA, plan: 'AmAm ROP / Graded', premium: 20, ...monthly, effectiveDate: d('2026-03-01'), firstDraftDate: d('2026-03-01'), status: 'Deceased' },
     // P10: pending: a rate, nothing paid.
@@ -220,17 +220,101 @@ export const PHASE5_CASES: TestCase[] = [
       SpreadsheetApp.flush();
       eq(commissions(ss)[1], [69, 1.1, 9, 3, 495, 165, '', 330], 'P2 with 3 months paid');
       eq(round(rowOf(ss, DASHBOARD, 'Chargebacks')[1]), 425, 'year chargebacks follow');
+      eq(formulaErrors(ss), [], 'formula errors');
+    },
+  },
+  {
+    name: 'advance limit: Generational Life caps the advance at $1,000, paid back first',
+    run: (ss) => {
+      const client = String(readRecords(ss, 'Clients')[0].rec.clientId); // age 70 from 3/2026
+      const GL = 'Generational Life';
+      const added = appendRecords(ss, 'Policies', [
+        // P12: 400 x 110% x 3 = 1,320 -> 1,000; Jun-Sep paid: 1,760 earned, 760 beyond it.
+        { clientId: client, carrier: GL, plan: 'GL Preferred', premium: 400, paymentMode: 'Monthly', effectiveDate: d('2026-06-01'), firstDraftDate: d('2026-06-01'), status: 'Paid as issued' },
+        // P13: 500 x 95% x 3 = 1,425 -> 1,000; lapsed after 1 payment: 1,000 - 475 back.
+        { clientId: client, carrier: GL, plan: 'GL Standard', premium: 500, paymentMode: 'Monthly', effectiveDate: d('2026-07-01'), firstDraftDate: d('2026-07-01'), status: 'Lapsed' },
+        // P14: 1 payment of 440 against the 1,000 advance: 560 not yet earned.
+        { clientId: client, carrier: GL, plan: 'GL Preferred', premium: 400, paymentMode: 'Monthly', effectiveDate: d('2026-09-01'), firstDraftDate: d('2026-09-01'), status: 'Paid as issued' },
+      ]); // prettier-ignore
+      const rows = new Map(readRecords(ss, 'Policies').map((r) => [r.rec.policyId, r.row]));
+      updateRecord(ss, 'Policies', rows.get(added[1].policyId)!, { statusDate: d('2026-08-15') });
+      SpreadsheetApp.flush();
 
-      const errors = ['Policies', DASHBOARD, CARRIERS_REPORT].flatMap((name) =>
-        ss
-          .getSheetByName(name)!
-          .getDataRange()
-          .getDisplayValues()
-          .flat()
-          .filter((v) => /^#(REF|NAME|VALUE|ERROR|N\/A|DIV|NUM)/.test(v))
-          .map((v) => `${name}: ${v}`),
+      eq(
+        commissions(ss).slice(11),
+        [
+          [70, 1.1, 3, 4, 1000, 1760, '', ''],
+          [70, 0.95, 3, 1, 1000, 475, '', 525],
+          [70, 1.1, 3, 1, 1000, 440, 560, ''],
+        ],
+        COMMISSION_KEYS.join(' | '),
       );
-      eq(errors, [], 'formula errors');
+      eq(
+        roundAll(rowOf(ss, CARRIERS_REPORT, GL).slice(12, 16)),
+        [3000, 2675, 525, 560],
+        'Carriers: Generational Life',
+      );
+      const value = (label: string) => round(rowOf(ss, DASHBOARD, label)[1]);
+      eq(
+        [
+          'Commission advances',
+          'Commission as earned',
+          'Chargebacks',
+          'Net commission',
+          'Advance not yet earned',
+        ].map(value),
+        [4836, 1906.25, 950, 5792.25, 710],
+        'year 2026',
+      );
+      const table = ss.getSheetByName(DASHBOARD)!.getDataRange().getValues();
+      const head = table.findIndex((r) => r[0] === MONTH_COLUMNS[0]);
+      const pick = ['Commission advances', 'Commission as earned', 'Chargebacks', 'Net commission'];
+      eq(
+        table
+          .slice(head + 6, head + 10)
+          .map((r) => roundAll(pick.map((c) => r[MONTH_COLUMNS.indexOf(c)]))),
+        [
+          [1000, 189.25, 0, 1189.25],
+          [1000, 189.25, 95, 1094.25],
+          [180, 509.25, 525, 164.25],
+          [1000, 629.25, 0, 1629.25],
+        ],
+        'advances | as earned | chargebacks | net, Jun-Sep',
+      );
+      eq(formulaErrors(ss), [], 'formula errors');
+    },
+  },
+  {
+    name: 'Medicare: a flat $36 a month, no premium needed',
+    run: (ss) => {
+      const client = String(readRecords(ss, 'Clients')[0].rec.clientId);
+      // P15: no premium; Jul-Sep: 3 x $36.
+      appendRecords(ss, 'Policies', [
+        { clientId: client, carrier: 'Devoted Health', plan: 'Medicare', productType: 'Medicare - MAPD', effectiveDate: d('2026-07-01'), status: 'Paid as issued' },
+      ]); // prettier-ignore
+      SpreadsheetApp.flush();
+
+      eq(commissions(ss)[14], [70, 1, 0, 3, 0, 108, '', ''], COMMISSION_KEYS.join(' | '));
+      eq(
+        roundAll(rowOf(ss, CARRIERS_REPORT, 'Devoted Health').slice(12, 16)),
+        [0, 108, 0, 0],
+        'Carriers: Devoted Health',
+      );
+      eq(round(rowOf(ss, DASHBOARD, 'Commission as earned')[1]), 2014.25, 'year as earned');
+      eq(formulaErrors(ss), [], 'formula errors');
     },
   },
 ];
+
+/** Cells showing a formula error on the commission tabs. */
+function formulaErrors(ss: Spreadsheet): string[] {
+  return ['Policies', DASHBOARD, CARRIERS_REPORT].flatMap((name) =>
+    ss
+      .getSheetByName(name)!
+      .getDataRange()
+      .getDisplayValues()
+      .flat()
+      .filter((v) => /^#(REF|NAME|VALUE|ERROR|N\/A|DIV|NUM)/.test(v))
+      .map((v) => `${name}: ${v}`),
+  );
+}

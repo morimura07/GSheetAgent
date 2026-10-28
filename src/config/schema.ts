@@ -121,8 +121,8 @@ const rateOr0 = (key: string) => `IF(ISNUMBER([[${key}]]),[[${key}]],0)`;
 const commissionIf = (expr: string) =>
   `ARRAYFORMULA(IF(([[monthsPaid]]="")+NOT(ISNUMBER([[commissionRate]])),,${expr}))`;
 
-/** Advance months not covered by payments, times the monthly year-1 commission. */
-const UNEARNED = `IF([[advanceMonths]]>[[monthsPaid]],ROUND([[monthlyPremium]]*[[commissionRate]]*([[advanceMonths]]-[[monthsPaid]]),2),)`;
+/** The advance less the year-1 commission earned on the months paid, when positive. */
+const UNEARNED = `IF(ROUND([[advance]]-[[commissionBase]]*[[commissionRate]]*[[monthsPaid]],2)>0,ROUND([[advance]]-[[commissionBase]]*[[commissionRate]]*[[monthsPaid]],2),)`;
 
 export const DATA_TABS: DataTab[] = [
   {
@@ -336,6 +336,17 @@ export const DATA_TABS: DataTab[] = [
           'ARRAYFORMULA(IF([[plan]]="",,IFERROR(VLOOKUP([[plan]],{set_Plans_plan,set_Plans_advanceMonths},2,FALSE)*IF(VLOOKUP([[plan]],{set_Plans_plan,set_Plans_bankDraftOnly},2,FALSE)=TRUE,[[paidBy]]="Bank draft",1),0)))',
       },
       {
+        key: 'commissionBase',
+        header: 'Commission paid on / month',
+        type: 'formula',
+        format: '$#,##0.00',
+        width: 100,
+        sensitive: true,
+        note: 'Monthly premium, or the flat amount a month of the plan (Settings > Plans, e.g. Medicare)',
+        formula:
+          'ARRAYFORMULA(IF([[plan]]="",,IFERROR(1/(1/VLOOKUP([[plan]],{set_Plans_plan,set_Plans_flatMonthly},2,FALSE)),[[monthlyPremium]])))',
+      },
+      {
         key: 'monthsPaidOverride',
         header: 'Months paid (if different)',
         type: 'number',
@@ -357,8 +368,10 @@ export const DATA_TABS: DataTab[] = [
         type: 'formula',
         format: '$#,##0.00',
         sensitive: true,
-        note: 'Monthly premium x year-1 rate x advance months, paid when the policy starts',
-        formula: commissionIf('ROUND([[monthlyPremium]]*[[commissionRate]]*[[advanceMonths]],2)'),
+        note: 'Monthly premium x year-1 rate x advance months, up to the plan advance limit, paid when the policy starts',
+        formula: commissionIf(
+          'ROUND(LET(a,[[commissionBase]]*[[commissionRate]]*[[advanceMonths]],l,IFERROR(1/(1/VLOOKUP([[plan]],{set_Plans_plan,set_Plans_advanceLimit},2,FALSE)),9E+99),IF(a>l,l,a)),2)',
+        ),
       },
       {
         key: 'commissionEarned',
@@ -368,7 +381,7 @@ export const DATA_TABS: DataTab[] = [
         sensitive: true,
         note: 'Earned on the months paid: year-1 rate on months 1-12, then the renewal rates',
         formula: commissionIf(
-          `ROUND([[monthlyPremium]]*([[commissionRate]]*IF([[monthsPaid]]>12,12,[[monthsPaid]])+${rateOr0('rate2to5')}*${monthsIn(12, 60)}+${rateOr0('rate6to10')}*${monthsIn(60, 120)}+${rateOr0('rate11on')}*${monthsIn(120, null)}),2)`,
+          `ROUND([[commissionBase]]*([[commissionRate]]*IF([[monthsPaid]]>12,12,[[monthsPaid]])+${rateOr0('rate2to5')}*${monthsIn(12, 60)}+${rateOr0('rate6to10')}*${monthsIn(60, 120)}+${rateOr0('rate11on')}*${monthsIn(120, null)}),2)`,
         ),
       },
       {
@@ -387,7 +400,7 @@ export const DATA_TABS: DataTab[] = [
         format: '$#,##0.00',
         sensitive: true,
         warn: 'positive',
-        note: 'Lapsed, cancelled or death claim: the advance months the client did not pay (paid 2 of 9: 7 months back)',
+        note: 'Lapsed, cancelled or death claim: the part of the advance not earned (paid 2 of 9 months: 7 months back)',
         formula: commissionIf(`IF(${ended},${UNEARNED},)`),
       },
       {
@@ -652,8 +665,18 @@ export const SETTINGS_TABLES: SettingsTable[] = [
       { key: 'advanceMonths', header: 'Advance months (0 = as earned)', type: 'number' },
       { key: 'bankDraftOnly', header: 'Advance only with bank draft', type: 'checkbox' },
       { key: 'confirmed', header: 'Confirmed', type: 'checkbox' },
+      { key: 'advanceLimit', header: 'Advance limit $ (blank = none)', type: 'number' },
+      { key: 'flatMonthly', header: 'Flat $ a month instead of premium', type: 'number' },
     ],
-    seed: PLANS.map((p) => [p.name, p.carrier, p.advanceMonths, p.bankDraftOnly, p.confirmed]),
+    seed: PLANS.map((p) => [
+      p.name,
+      p.carrier,
+      p.advanceMonths,
+      p.bankDraftOnly,
+      p.confirmed,
+      p.advanceLimit ?? '',
+      p.flatMonthly ?? '',
+    ]),
   },
   {
     key: 'CommissionRates',

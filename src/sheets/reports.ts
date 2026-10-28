@@ -80,14 +80,18 @@ function persistency(n: number, criteria: string[] = []): string {
 
 /**
  * Commission paid as earned in the month starting at `cell`: for each policy, the
- * month's commission when that policy month was paid and is not covered by the advance.
+ * month's commission when that policy month was paid, less what still pays back the advance.
  * Policy month 0 is the persistency start's month; its rate depends on the policy year.
  */
 function asEarned(cell: string): string {
   const start = P('persistencyStart');
   const idx = `((YEAR(${cell})-YEAR(${start}))*12+MONTH(${cell})-MONTH(${start}))`;
-  const rate = `IF(${idx}<12,${P('commissionRate')},IF(${idx}<60,${P('rate2to5')},IF(${idx}<120,${P('rate6to10')},${P('rate11on')})))`;
-  return `SUMPRODUCT(IFERROR((${idx}>=${P('advanceMonths')})*(${idx}<${P('monthsPaid')})*${P('monthlyPremium')}*${rate},0))`;
+  // Year 1: the year-1 commission earned over `months` months, beyond the advance.
+  const beyondAdvance = (months: string) =>
+    `IF(ROUND(${P('commissionBase')}*${P('commissionRate')}*${months}-${P('advance')},2)>0,${P('commissionBase')}*${P('commissionRate')}*${months}-${P('advance')},0)`;
+  const year1 = `${beyondAdvance(`(${idx}+1)`)}-${beyondAdvance(idx)}`;
+  const renewal = `${P('commissionBase')}*IF(${idx}<60,${P('rate2to5')},IF(${idx}<120,${P('rate6to10')},${P('rate11on')}))`;
+  return `SUMPRODUCT(IFERROR((${idx}>=0)*(${idx}<${P('monthsPaid')})*IF(${idx}<12,${year1},${renewal}),0))`;
 }
 
 /** Column letter of the 0-based column `i` (A-Z). */
