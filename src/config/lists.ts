@@ -192,8 +192,8 @@ export const PLANS: Plan[] = [
   { name: 'TA Final expense', carrier: 'Transamerica', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
   { name: 'TA Graded', carrier: 'Transamerica', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
   { name: 'TA XpIUL', carrier: 'Transamerica', advanceMonths: 9, bankDraftOnly: false, confirmed: true },
-  // Advance not given yet: treated as paid as earned.
-  { name: 'GTL Heritage', carrier: 'Guarantee Trust Life', advanceMonths: 0, bankDraftOnly: false, confirmed: false },
+  // Client (2026-10-29): GTL does advance, but set it to as earned.
+  { name: 'GTL Heritage', carrier: 'Guarantee Trust Life', advanceMonths: 0, bankDraftOnly: false, confirmed: true },
   { name: 'GL Preferred', carrier: 'Generational Life', advanceMonths: 3, bankDraftOnly: false, advanceLimit: 1000, confirmed: true },
   { name: 'GL Standard', carrier: 'Generational Life', advanceMonths: 3, bankDraftOnly: false, advanceLimit: 1000, confirmed: true },
   { name: 'GL Sub-Standard', carrier: 'Generational Life', advanceMonths: 3, bankDraftOnly: false, advanceLimit: 1000, confirmed: true },
